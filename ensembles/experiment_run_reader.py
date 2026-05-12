@@ -24,15 +24,15 @@ def model_error_calculation(model: str = 'kdv-1-soliton', error_type: str = 'abs
     """
 
     #initialize the file 
-    path = Path(root / 'ensembles' / 'replications' / model / 'errors')
+    path = Path(root / 'replications' / model / 'errors')
     model_mean = []
     model_max = []
 
     for file in path.iterdir():
         if file.is_file(): #Filter out any subdirectories
             data = np.load(file)
-            model_mean.append(np.mean(data))
-            model_max.append(np.max(data))
+            model_mean.append(np.mean(data.f.error))
+            model_max.append(np.max(data.f.error))
     
     if (verbose):
         print(f'{error_type} error mean over all seeds: ' + str(np.mean(model_mean)))
