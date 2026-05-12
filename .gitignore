@@ -1,0 +1,8 @@
+#Model data
+**/losses/**
+**/errors/**
+.npz
+
+#Jupyter notebook local data
+**/.ipynb_checkpoints/
+*-checkpoint.ipynb
