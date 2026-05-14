@@ -10,11 +10,6 @@ class MLP(nn.Module):
     def __init__(self, n_hidden_layers=2, n_neurons_per_layer=9, activation=nn.Tanh, use_layernorm=False, input=2, output=1):
         super(MLP, self).__init__()
 
-        self.n_hidden_layers = n_hidden_layers
-        self.n_neurons_per_layer = n_neurons_per_layer
-        self.activation = activation
-        self.use_layernorm = use_layernorm
-
         n_output_nodes = output #u is default
         #Build network
         layer_list = [nn.Linear(input, n_neurons_per_layer)] #(x,t) is default --> hidden layer size
