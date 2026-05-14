@@ -6,7 +6,8 @@ for the KdV equation
 import torch
 import torch.nn as nn
 
-def compute_pde_loss(self, x, t):
+#not finished yet
+def compute_pde_loss(neuralNet, x, t):
     """
     Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
     """
@@ -15,7 +16,7 @@ def compute_pde_loss(self, x, t):
     t = t.clone().detach().requires_grad_(True)
 
     # forward pass = u(x,t)
-    u = self.net(x, t)
+    u = neuralNet(x, t)
 
     # calculate derivatives needed for KdV
     # first-order derivatives
@@ -51,21 +52,20 @@ def compute_pde_loss(self, x, t):
 
     return loss
 
-def compute_initial_loss(neuralNet):
+def compute_initial_loss(neuralNet, u_initial, x_ic, t_ic):
     """
     Compute the initial loss for the KdV equation. (ICs)
     """
-    u_pred_initial = self.net(self.x_initial, self.t_initial)
-    initial_loss = torch.mean((u_pred_initial - self.u_initial)**2)
+    u_pred_initial = neuralNet(x_ic, t_ic)
+    initial_loss = torch.mean((u_pred_initial - u_initial)**2)
     return initial_loss
 
-def compute_boundary_loss(neuralNet: nn.Module, x, t):
-
+def compute_boundary_loss(neuralNet, u_boundary, x_bc, t_bc):
     """
     Compute the boundary loss for the KdV equation. (BCs)
     """
-    u_pred_boundary = neuralNet.net(x, t)
-    boundary_loss = torch.mean((u_pred_boundary - neuralNet.system['u_boundary'])**2)
+    u_pred_boundary = neuralNet(x_bc, t_bc)
+    boundary_loss = torch.mean((u_pred_boundary - u_boundary)**2)
     return boundary_loss
 
 def init_loss_list():
@@ -87,6 +87,7 @@ def init_loss_weights(**init_weights):
     weights = torch.tensor(list(init_weights.values))
     return weights
 
+#touch up once done with the KDV class
 def loss_components():
     ic = compute_initial_loss()
     bc = compute_boundary_loss()
