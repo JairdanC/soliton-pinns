@@ -6,10 +6,10 @@ import torch.nn as nn
 import time
 
 from .kdv.kdv_loss import *
-# from .loss import *  # Remove if not needed
-# from .utils import *  # Remove if not needed
+from loss import *
+from utils import *
 
-
+#Not fixed yet
 def setup_training_domain(self, n_collocation, n_initial, n_boundary):
         """
         Setup the domain points for training. Also generates initial conditions for the corresponding number of solitons.
@@ -119,7 +119,89 @@ def train(neuralNet: nn.Module, train_params):
     
 
     #L-BFGS optimization
+    if params['verbose']: print("\nStarting L-BFGS optimization...")
+    #potential delete later
+    if params['lbfgs_version'] == 'old':
+        def closure():
+            optimizer.zero_grad(set_to_none=True)
+            loss_comps = loss_components()
+            total_loss = total_loss(loss_weights, loss_comps)
+            total_loss.backward()
 
+            update_loss_list()
+
+            if params['verbose'] and len(losses['total']) % params['verbose_step'] == 0:
+                print(f"L-BFGS - Iteration {len(losses['total']) - params['adam_epochs']}, Total Loss: {total_loss.item():.6e}")
+        
+            return total_loss
+        
+        optimizer = torch.optim.LBFGS(neuralNet.net.parameters(),
+                                    lr= params['lbfgs_lr'], 
+                                    max_iter=params['lbfgs_epochs'],
+                                    max_eval=params['lbfgs_epochs']*2,
+                                    tolerance_grad=1e-9,
+                                    tolerance_change=1e-16,
+                                    history_size=params['lbfgs_history_size'],
+                                    line_search_fn="strong_wolfe"
+                                    )
+        
+        optimizer.step(closure)
+
+        if params['verbose']:
+            print(f"L-BFGS complete, Final Loss: {losses['total'][-1]:.6e}")
+
+    elif params['lbfgs_version'] == 'new':
+        optimizer = torch.optim.LBFGS(
+                neuralNet.net.parameters(),
+                lr=params['lbfgs_lr'],
+                max_iter=1,                  #one accepted iteration per step()
+                max_eval=100,
+                tolerance_grad=1e-9,
+                tolerance_change=1e-16,
+                history_size=params['lbfgs_history_size'],
+                line_search_fn="strong_wolfe",
+            )
+        
+        last_vals = {}
+
+        def closure():
+            optimizer.zero_grad(set_to_none=True)
+            loss_comps = loss_components()
+            total_loss = total_loss(loss_weights, loss_comps)
+            total_loss.backward()
+
+            update_loss_dict()
+
+            return total_loss
+        
+        for i in range(params['lbfgs_epochs']):
+            loss = optimizer.step(closure)
+            update_loss_list()
+
+            if params['verbose'] and (i % params['verbose_step'] == 0 or i == params['lbfgs_epochs'] - 1):
+                print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {float(loss):.6e}")
+
+    else: 
+        raise ValueError("lbfgs_version only implemented for" \
+        "\'old\' and \'new\', must be defined as such")
+
+    log_gpu_memory("after L-BFGS")
+
+    neuralNet.losses = losses
+    neuralNet.training_time = time.time() - start_time
+    if params['verbose']: print(f"Training completed in {neuralNet.training_time:.2f} s")
+    
+    print_weighted_loss_components(label='end')
+
+    return
+
+
+
+
+
+
+            
+         
 
 
         
