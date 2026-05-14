@@ -4,8 +4,9 @@ for the KdV equation
 """
 
 import torch
+import torch.nn as nn
 
-def compute_pde_residual(self, x, t):
+def compute_pde_loss(self, x, t):
     """
     Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
     """
@@ -46,9 +47,11 @@ def compute_pde_residual(self, x, t):
     # KdV equation residual
     residual = u_t + 6.0 * u * u_x + u_xxx
 
-    return residual
+    loss = torch.mean(residual**2)
 
-def compute_initial_loss(self):
+    return loss
+
+def compute_initial_loss(neuralNet):
     """
     Compute the initial loss for the KdV equation. (ICs)
     """
@@ -56,18 +59,43 @@ def compute_initial_loss(self):
     initial_loss = torch.mean((u_pred_initial - self.u_initial)**2)
     return initial_loss
 
-def compute_boundary_loss(self):
+def compute_boundary_loss(neuralNet: nn.Module, x, t):
 
     """
     Compute the boundary loss for the KdV equation. (BCs)
     """
-    u_pred_boundary = self.net(self.x_boundary, self.t_boundary)
-    boundary_loss = torch.mean((u_pred_boundary - self.u_boundary)**2)
+    u_pred_boundary = neuralNet.net(x, t)
+    boundary_loss = torch.mean((u_pred_boundary - neuralNet.system['u_boundary'])**2)
     return boundary_loss
 
-def _loss_components(self):
-        ic  = self.compute_initial_loss()
-        bc  = self.compute_boundary_loss()
-        resid = self.compute_pde_residual(self.x_collocation, self.t_collocation)
-        pde = torch.mean(resid**2)
-        return dict(ic=ic, bc=bc, pde=pde)
+def init_loss_list():
+    losses = {
+        'total': [],
+        'initial': [],
+        'boundary': [],
+        'pde': []
+    }
+    return losses
+
+def init_loss_weights(**init_weights):
+    default_weights = {
+        'w_ic': 1.0,
+        'w_bc': 1.0,
+        'w_pde': 1.0
+    }
+    init_weights.update(default_weights)
+    weights = torch.tensor(list(init_weights.values))
+    return weights
+
+def loss_components():
+    ic = compute_initial_loss()
+    bc = compute_boundary_loss()
+    pde = compute_pde_loss()
+
+    components = torch.tensor(list(ic, bc, pde))
+
+    return components
+
+def total_loss(weights, components):
+    total = torch.dot(weights, components)
+    return total
