@@ -1,3 +1,5 @@
+import torch
+
 def setup_testing_domain(self, nx=1000, nt=1000):
         """
         Create a regular grid for testing and visualization.
@@ -81,7 +83,7 @@ def test(self, plot_heatmap = False, error_type: str = 'absolute-normalized'):
         
         return
 
-def extract_profiles(self, t_values, which: str = 'predicted'):
+
         """Return 1-D profiles of a chosen solution at specified times.
 
         Parameters

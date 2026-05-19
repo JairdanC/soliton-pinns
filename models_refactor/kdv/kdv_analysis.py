@@ -3,6 +3,8 @@ This file contains the analytical methods used for obtaining the exact solutions
 used across training a PINN on the KdV equation for computing error and initial conditions and visualization
 """
 
+#READY TO TEST
+
 import torch
 
 #PRIME CANDIDATES FOR TORCH.compile

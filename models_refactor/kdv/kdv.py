@@ -95,7 +95,7 @@ class KDV(nn.Module):
     def test(self):
         return True
     
-    def compute_solutions(self):
-        return True
+    def compute_solutions(self) -> dict[str, torch.Tensor]:
+        return {'finish': torch.tensor([0])}
 
         

@@ -199,13 +199,4 @@ def train(neural_net: MLP, train_params) -> dict[str, typing.Any]:
 
     return training_stats
 
-
-
-
-
-
-            
-         
-
-
-        
+  

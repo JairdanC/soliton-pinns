@@ -77,7 +77,7 @@ def init_loss_list():
     }
     return losses
 
-def init_loss_weights(**init_weights):
+def init_loss_weights(**init_weights: dict[str, float]):
     default_weights = {
         'w_ic': 1.0,
         'w_bc': 1.0,
