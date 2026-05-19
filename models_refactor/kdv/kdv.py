@@ -45,7 +45,7 @@ class KDV(nn.Module):
         if self.verbose:
             print(f"Using device: {self.device}")
 
-        self.neural_net = MLP(char_params['n_hidden_layers'], char_params['n_neurons_per_layer'], char_params['activation'], char_params['use_layernorm'])
+        self.neural_net = MLP(char_params['n_hidden_layers'], char_params['n_neurons_per_layer'], char_params['activation'], char_params['use_layernorm'], input=2, output=1)
         self.neural_net.to(self.device)
 
         match char_params['num_solitons']:
@@ -84,6 +84,8 @@ class KDV(nn.Module):
 
     def train(self):
         return True
-
+        
     def test(self):
         return True
+
+        

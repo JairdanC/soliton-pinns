@@ -93,7 +93,7 @@ def loss_components(neuralNet, x, t, x_ic, t_ic, u_ic, x_bc, t_bc, u_bc):
     bc = compute_boundary_loss(neuralNet, u_bc, x_bc, t_bc)
     pde = compute_pde_loss(neuralNet, x, t)
 
-    components = torch.tensor(ic, bc, pde)
+    components = torch.tensor([ic, bc, pde])
 
     return components
 

@@ -4,13 +4,14 @@ This file contains the functions used in training the given neural network
 import torch
 import torch.nn as nn
 import time
+import typing
 
-from .kdv.kdv_loss import *
-from loss import *
+from kdv_loss import *
 from utils import *
+from network import *
 
 #Not fixed yet
-def setup_training_domain(self, n_collocation, n_initial, n_boundary):
+def setup_training_domain(n_collocation, n_initial, n_boundary):
         """
         Setup the domain points for training. Also generates initial conditions for the corresponding number of solitons.
         """
@@ -60,7 +61,7 @@ def setup_training_domain(self, n_collocation, n_initial, n_boundary):
             print(f"Using {self.num_solitons}-soliton initial condition.")
             print(f"Solving over the domain: t: {self.t_lims}, x: {self.x_lims}")
 
-def train(neuralNet: nn.Module, train_params):
+def train(neural_net: MLP, train_params) -> dict[str, typing.Any]:
     #set defaults
     defaults = dict(
         adam_epochs=1000,
@@ -97,8 +98,8 @@ def train(neuralNet: nn.Module, train_params):
 
     #Adam Optimizer
     if params['verbose']: print('Starting Adam optimization...')
-    optimizer = torch.optim.Adam(neuralNet.net.parameters(), lr=params['adam_lr'])
-    if torch.cuda.is_available(): torch.cuda.reset_peak_memory_stats(neuralNet.device)
+    optimizer = torch.optim.Adam(neural_net.parameters(), lr=params['adam_lr'])
+    if torch.cuda.is_available(): torch.cuda.reset_peak_memory_stats(device)
     log_gpu_memory("train start")
 
     for epoch in range(params['adam_epochs']):
@@ -135,7 +136,7 @@ def train(neuralNet: nn.Module, train_params):
         
             return total_loss
         
-        optimizer = torch.optim.LBFGS(neuralNet.net.parameters(),
+        optimizer = torch.optim.LBFGS(neural_net.net.parameters(),
                                     lr= params['lbfgs_lr'], 
                                     max_iter=params['lbfgs_epochs'],
                                     max_eval=params['lbfgs_epochs']*2,
@@ -152,7 +153,7 @@ def train(neuralNet: nn.Module, train_params):
 
     elif params['lbfgs_version'] == 'new':
         optimizer = torch.optim.LBFGS(
-                neuralNet.net.parameters(),
+                neural_net.parameters(),
                 lr=params['lbfgs_lr'],
                 max_iter=1,                  #one accepted iteration per step()
                 max_eval=100,
@@ -187,13 +188,16 @@ def train(neuralNet: nn.Module, train_params):
 
     log_gpu_memory("after L-BFGS")
 
-    neuralNet.losses = losses
-    neuralNet.training_time = time.time() - start_time
-    if params['verbose']: print(f"Training completed in {neuralNet.training_time:.2f} s")
+    training_stats = {
+        'losses': losses,
+        'training time': time.time() - start_time
+    }
+
+    if params['verbose']: print(f"Training completed in {training_stats['training time']:.2f} s")
     
     print_weighted_loss_components(label='end')
 
-    return
+    return training_stats
 
 
 
