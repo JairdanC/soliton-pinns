@@ -24,12 +24,12 @@ class KDV(nn.Module):
         )
 
         # Merge user params with defaults for the characteristic parameters of the neural network
-        char_params = {**defaults, **init_params}
+        self.char_params = {**defaults, **init_params}
 
         super(KDV, self).__init__() #calls the constructor of the parent class (PyTorch function)
 
-        if char_params['seed'] is not None:
-            self.seed = int(char_params['seed'])
+        if self.char_params['seed'] is not None:
+            self.seed = int(self.char_params['seed'])
             random.seed(self.seed)
             np.random.seed(self.seed)
             torch.manual_seed(self.seed)
@@ -45,17 +45,17 @@ class KDV(nn.Module):
         if self.verbose:
             print(f"Using device: {self.device}")
 
-        self.neural_net = MLP(char_params['n_hidden_layers'], char_params['n_neurons_per_layer'], char_params['activation'], char_params['use_layernorm'], input=2, output=1)
+        self.neural_net = MLP(self.char_params['n_hidden_layers'], self.char_params['n_neurons_per_layer'], self.char_params['activation'], self.char_params['use_layernorm'], input=2, output=1)
         self.neural_net.to(self.device)
 
-        match char_params['num_solitons']:
+        match self.char_params['num_solitons']:
             case 1:
                 x_lims = (-30, 30)
                 t_lims = (-15, 15)
                 k = 0.9  # wavenumber
                 phi = 0  # phase parameter
-                self.k_vector = np.array([k]) #double check if needed in the analytical functions
-                self.phi_vector = np.array([phi])
+                k_vector = torch.tensor([k])
+                phi_vector = torch.tensor([phi])                
             case 2:
                 x_lims = (-35, 50)
                 t_lims = (-20, 35)
@@ -79,6 +79,13 @@ class KDV(nn.Module):
             case _:
                 raise ValueError("n_soliton only implemented for N = 1, 2, 3 solitons") 
             
+        self.soliton_params = {
+                'x_lims': x_lims,
+                't_lims': t_lims,
+                'k_vec': k_vector,
+                'phi_vec': phi_vector
+            }
+            
         #here is where testing domain is called in the original code seems too early
         return
 
@@ -86,6 +93,9 @@ class KDV(nn.Module):
         return True
         
     def test(self):
+        return True
+    
+    def compute_solutions(self):
         return True
 
         

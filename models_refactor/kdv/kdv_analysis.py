@@ -5,7 +5,6 @@ used across training a PINN on the KdV equation for computing error and initial 
 
 import torch
 
-
 #PRIME CANDIDATES FOR TORCH.compile
 def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: torch.Tensor) -> torch.Tensor:
     
