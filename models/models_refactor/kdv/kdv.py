@@ -5,9 +5,14 @@ This file is the base KDV physics informed neural network class, it call the oth
 import torch
 import torch.nn as nn
 
+import numpy as np
+import random
+from network import MLP
+
 class KDV(nn.Module):
-    def __init__(self, init_params):
-        # Set defaults
+    def __init__(self, init_params) -> None:
+
+        #defaults
         defaults = dict(
             num_solitons=1,
             n_hidden_layers=3,
@@ -17,18 +22,14 @@ class KDV(nn.Module):
             verbose=True,
             use_layernorm=False, 
         )
-        # Merge user params with defaults
-        params = {**defaults, **init_params}
-        self.init_params = params.copy()
 
-        super(KDV, self).__init__() # call constructor of parent class
-        
-        self.num_solitons = params['num_solitons'] 
-        self.verbose = params['verbose'] 
-        
-        # deterministic seeding across CPU, GPU and numpy
-        if params['seed'] is not None:
-            self.seed = int(params['seed'])
+        # Merge user params with defaults for the characteristic parameters of the neural network
+        char_params = {**defaults, **init_params}
+
+        super(KDV, self).__init__() #calls the constructor of the parent class (PyTorch function)
+
+        if char_params['seed'] is not None:
+            self.seed = int(char_params['seed'])
             random.seed(self.seed)
             np.random.seed(self.seed)
             torch.manual_seed(self.seed)
@@ -38,62 +39,51 @@ class KDV(nn.Module):
             # enforce deterministic behaviour in cuDNN
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-        
+
         # set device to GPU (if available) otherwise CPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if self.verbose:
             print(f"Using device: {self.device}")
-        
-        # create network and move to device
-        self.net = PINN(params['n_hidden_layers'], params['n_neurons_per_layer'], params['activation'], params['use_layernorm'])
-        self.net.to(self.device)
-        
-        # Set domain limits and parameters for different number of solitons
-        if self.num_solitons == 1:
-            self.x_lims = (-30, 30)
-            self.t_lims = (-15, 15)
 
-            k = 0.9  # wavenumber
-            phi = 0  # phase parameter
+        self.neural_net = MLP(char_params['n_hidden_layers'], char_params['n_neurons_per_layer'], char_params['activation'], char_params['use_layernorm'])
+        self.neural_net.to(self.device)
 
-            self.k_vector = np.array([k])
-            self.phi_vector = np.array([phi])
+        match char_params['num_solitons']:
+            case 1:
+                x_lims = (-30, 30)
+                t_lims = (-15, 15)
+                k = 0.9  # wavenumber
+                phi = 0  # phase parameter
+                self.k_vector = np.array([k]) #double check if needed in the analytical functions
+                self.phi_vector = np.array([phi])
+            case 2:
+                x_lims = (-35, 50)
+                t_lims = (-20, 35)
+                k1 = np.sqrt(4/4) 
+                k2 = np.sqrt(1.2/4) 
+                phi1 = 0
+                phi2 = 0
+                k_vector = np.array([k1, k2])
+                phi_vector = np.array([phi1, phi2])
+            case 3:
+                k1 = np.sqrt(1)
+                k2 = np.sqrt(0.8)
+                k3 = np.sqrt(0.5)
+                x_lims = (-35, 65)
+                t_lims = (-25, 50)
+                phi1 = 0
+                phi2 = 0
+                phi3 = 0
+                k_vector = np.array([k1, k2, k3])
+                phi_vector = np.array([phi1, phi2, phi3])
+            case _:
+                raise ValueError("n_soliton only implemented for N = 1, 2, 3 solitons") 
+            
+        #here is where testing domain is called in the original code seems too early
+        return
 
-        elif self.num_solitons == 2:
-            self.x_lims = (-35, 50)
-            self.t_lims = (-20, 35)
+    def train(self):
+        return True
 
-            k1 = np.sqrt(4/4) 
-            k2 = np.sqrt(1.2/4) 
-            phi1 = 0
-            phi2 = 0
-
-            self.k_vector = np.array([k1, k2])
-            self.phi_vector = np.array([phi1, phi2])
-
-        elif self.num_solitons == 3:
-            k1 = np.sqrt(1)
-            k2 = np.sqrt(0.8)
-            k3 = np.sqrt(0.5)
-
-            self.x_lims = (-35, 65)
-            self.t_lims = (-25, 50)
-
-            phi1 = 0
-            phi2 = 0
-            phi3 = 0
-
-            self.k_vector = np.array([k1, k2, k3])
-            self.phi_vector = np.array([phi1, phi2, phi3])
-        
-        # setup training and testing domain points
-        self.setup_testing_domain()
-        
-        # setup figure size 
-        self.figsize = (10, 6)
-
-        # default batch size for streaming network evaluation during testing
-        # keep the full test grid on CPU to save GPU RAM, send it in chunks only when needed
-        self.test_batch_size = params.get('test_batch_size', 20_000)
-        # ---- memory probe after initialization ----
-        self._log_gpu_memory("after __init__")
+    def test(self):
+        return True
