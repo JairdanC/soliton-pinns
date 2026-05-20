@@ -104,18 +104,21 @@ def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: 
 
         
 def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
+    device = k_vec.device
+
 
     def aij(ki, kj):
         return 2*torch.log((ki - kj) / (ki + kj))
     
     n = len(k_vec)
+     
 
     if n == 1: 
-        return torch.tensor([0])
+        return torch.tensor([0.0], device=device)
     elif n == 2:
         k1, k2 = k_vec
 
-        return torch.tensor([0, aij(k1, k2)])
+        return torch.tensor([0.0, aij(k1, k2)], device=device)
     elif n == 3:
         k1, k2, k3 = k_vec
 
@@ -123,7 +126,7 @@ def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
         a13 = aij(k1, k3)
         a23 = aij(k2, k3)
 
-        return torch.tensor([0.0, a12, a13 + a23])
+        return torch.tensor([0.0, a12, a13 + a23], device=device)
     else:
         raise ValueError('k_vec length is not equal to 1, 2, or 3, an invalid number of solitons phases')
     
@@ -133,7 +136,9 @@ def linear_combination(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, ph
     u = torch.zeros_like(x)
 
     for k_i, phi_i, delta_i in zip(k_vec, phi_vec, shifts):
-        u += n_soliton(x, t, k_i, (phi_i + delta_i))
+        k_1d = k_i.unsqueeze(0)
+        phase_1d = (phi_i + delta_i).unsqueeze(0)
+        u += n_soliton(x, t, k_1d, phase_1d)
 
     return u
 

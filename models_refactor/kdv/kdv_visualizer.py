@@ -8,15 +8,14 @@ def plot_profiles(t_values: list[int], x_test: torch.Tensor, t_test: torch.Tenso
     
     x = x_test.cpu().numpy()
     t = t_test.cpu().numpy()
-
-    if which not in ('predicted', 'exact', 'linear'):
-        raise ValueError("`which` must be one of 'predicted', 'exact', or 'linear'.")
     
     plt.figure(figsize=FIG_SIZE)
 
     for sol_key in which:
+        if sol_key not in ('predicted', 'exact', 'linear'):
+            raise ValueError(f'Each key in which must be predicted, exact or linear.')
         t_axis = t[0, :]
-        indices = [int(np.argmin(np.abs(t_axis - t))) for t in t_values]
+        indices = [int(np.argmin(np.abs(t_axis - t_val))) for t_val in t_values]
         sol_field = solutions[sol_key].cpu().numpy()
         profiles = [sol_field[:, idx] for idx in indices]
         x_axis = x[:, 0]
@@ -65,10 +64,11 @@ def plot_spacetime(x_test: torch.Tensor, t_test: torch.Tensor, u_pred: torch.Ten
     plt.figure(figsize=FIG_SIZE)
 
 
-    contour = plt.pcolormesh(t[0,:], x[:,0], u, cmap='plamsa', shading='auto')
+    contour = plt.pcolormesh(t[0,:], x[:,0], u, cmap='plasma', shading='auto')
     plt.colorbar(contour, label='u(x,t)')
 
-    #missing scatter function avaibible in og code
+    #missing scatter function, will restore later
+    
     plt.xlabel('Time (t)')
     plt.ylabel('Position (x)')
     plt.tight_layout()
