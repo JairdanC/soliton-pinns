@@ -57,5 +57,20 @@ def plot_losses(components: list[str], losses: dict[str, list[torch.Tensor]], ad
     return
 
 # spacetime
-def plot_spacetime(self, show_data=False) -> None:
+def plot_spacetime(x_test: torch.Tensor, t_test: torch.Tensor, u_pred: torch.Tensor) -> None:
+    x = x_test.cpu().numpy()
+    t = t_test.cpu().numpy()
+    u = u_pred.cpu().numpy()
+    
+    plt.figure(figsize=FIG_SIZE)
+
+
+    contour = plt.pcolormesh(t[0,:], x[:,0], u, cmap='plamsa', shading='auto')
+    plt.colorbar(contour, label='u(x,t)')
+
+    #missing scatter function avaibible in og code
+    plt.xlabel('Time (t)')
+    plt.ylabel('Position (x)')
+    plt.tight_layout()
+
     return
