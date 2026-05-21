@@ -6,8 +6,11 @@ for the KdV equation
 import torch
 import torch.nn as nn
 
+from kdv import Domain
+from network import MLP
+
 #not finished yet
-def compute_pde_loss(neural_net, x, t):
+def compute_pde_loss(neural_net: MLP, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     """
     Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
     """
@@ -52,7 +55,7 @@ def compute_pde_loss(neural_net, x, t):
 
     return loss
 
-def compute_initial_loss(neural_net, u_ic, x_ic, t_ic):
+def compute_initial_loss(neural_net: MLP, u_ic: torch.Tensor, x_ic: torch.Tensor, t_ic: torch.Tensor) -> torch.Tensor:
     """
     Compute the initial loss for the KdV equation. (ICs)
     """
@@ -60,7 +63,7 @@ def compute_initial_loss(neural_net, u_ic, x_ic, t_ic):
     initial_loss = torch.mean((u_pred_initial - u_ic)**2)
     return initial_loss
 
-def compute_boundary_loss(neural_net, u_bc, x_bc, t_bc):
+def compute_boundary_loss(neural_net: MLP, u_bc: torch.Tensor, x_bc: torch.Tensor, t_bc: torch.Tensor) -> torch.Tensor:
     """
     Compute the boundary loss for the KdV equation. (BCs)
     """
@@ -88,16 +91,15 @@ def init_loss_weights(init_weights: dict[str, float] = None) -> torch.Tensor:
     return weights
 
 #touch up once done with the KDV class
-def loss_components(neural_net, x, t, x_ic, t_ic, u_ic, x_bc, t_bc, u_bc):
-    ic = compute_initial_loss(neural_net, u_ic, x_ic, t_ic)
-    bc = compute_boundary_loss(neural_net, u_bc, x_bc, t_bc)
-    pde = compute_pde_loss(neural_net, x, t)
+def loss_components(neural_net: MLP, domain: Domain) -> torch.Tensor:
+    ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
+    bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
+    pde = compute_pde_loss(neural_net, domain.x_coll, domain.t_coll)
 
-    components = torch.tensor([ic, bc, pde])
-
+    components = torch.tensor([ic, bc, pde], device=domain.x_coll.device)
     return components
 
-def compute_total_loss(weights, components):
+def compute_total_loss(weights: torch.Tensor, components: torch.Tensor) -> torch.Tensor:
     total = torch.dot(weights, components)
     return total
 

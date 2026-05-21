@@ -6,15 +6,67 @@ import torch.nn as nn
 import time
 import typing
 
+from kdv import Domain
 from kdv_loss import *
 from utils import *
 from network import *
+from kdv_analysis import linear_combination
+
 
 #Not fixed yet
-def setup_training_domain(n_collocation, n_initial, n_boundary):
-    return
+def setup_training_domain(
+        n_collocation: int,
+        n_initial: int,
+        n_boundary: int,
+        soliton_params: dict[str, torch.Tensor]
+        ) -> Domain:
+    
+    device = soliton_params['x_lims'].device
+    
+    #domain limits
+    x0 = soliton_params['x_lims'][0]
+    x1 = soliton_params['x_lims'][1]
+    t0 = soliton_params['t_lims'][0]
+    t1 = soliton_params['t_lims'][1]
 
-def train(neural_net: MLP, train_params: dict[str, typing.Any], train_weights: dict[str, float], device: torch.DeviceLikeType) -> dict[str, typing.Any]:
+
+    #collocation points
+    x_collocation = torch.rand(n_collocation, 1, device=device) * (x1 - x0) + x0
+    t_collocation = torch.rand(n_collocation, 1, device=device) * (t1 - t0) + t0
+
+    #ic points
+    x_initial = torch.linspace(x0, x1, n_initial, device=device).reshape(-1, 1)
+    t_initial = torch.ones_like(x_initial, device=device) * t0
+    u_initial = linear_combination(x_initial, t_initial, soliton_params['k_vec'], soliton_params['phi_vec'])
+
+    t_boundary_left = torch.linspace(t0, t1, n_boundary//2, device=device).reshape(-1, 1)
+    x_boundary_left = torch.ones_like(t_boundary_left, device=device) * x0
+    t_boundary_right = torch.linspace(t0, t1, n_boundary//2, device=device).reshape(-1, 1)
+    x_boundary_right = torch.ones_like(t_boundary_right, device=device) * x1
+    x_boundary = torch.cat([x_boundary_left, x_boundary_right], dim=0)
+    t_boundary = torch.cat([t_boundary_left, t_boundary_right], dim=0)
+    u_boundary = torch.zeros_like(x_boundary, device=device)
+
+    domain = Domain(
+        x_collocation,
+        t_collocation,
+        x_initial,
+        t_initial,
+        u_initial,
+        x_boundary,
+        t_boundary,
+        u_boundary)
+
+    return domain
+
+def train(
+        neural_net: MLP,
+        soliton_params: dict[str, torch.Tensor], 
+        train_params: dict[str, typing.Any],
+        train_weights: dict[str, float], 
+        device: torch.DeviceLikeType,
+        ) -> dict[str, typing.Any]:
+    
     #set defaults
     defaults = {
         'adam_epochs': 1000,
@@ -37,10 +89,11 @@ def train(neural_net: MLP, train_params: dict[str, typing.Any], train_weights: d
     #start wall-clock timer
     start_time = time.time() #export this function to utils later
 
-    setup_training_domain(
-        n_collocation=params['n_collocation'],
-        n_initial=params['n_initial'],
-        n_boundary=params['n_boundary']
+    domain = setup_training_domain(
+        ['n_collocation'],
+        params['n_initial'],
+        params['n_boundary'],
+        soliton_params
     )
 
     print_weighted_loss_components(tag='start') #not fixed yet
@@ -53,7 +106,7 @@ def train(neural_net: MLP, train_params: dict[str, typing.Any], train_weights: d
 
     for epoch in range(params['adam_epochs']):
         optimizer.zero_grad(set_to_none=True)
-        loss_comps = loss_components()
+        loss_comps = loss_components(neural_net, domain)
         total_loss = compute_total_loss(loss_weights, loss_comps)
         total_loss.backward()
         optimizer.step()

@@ -133,7 +133,7 @@ def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
 
 def linear_combination(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, phi_vec: torch.Tensor) -> torch.Tensor:
     shifts = phase_shifts(k_vec=k_vec)
-    u = torch.zeros_like(x)
+    u = torch.zeros_like(x, device=k_vec.device)
 
     for k_i, phi_i, delta_i in zip(k_vec, phi_vec, shifts):
         k_1d = k_i.unsqueeze(0)
