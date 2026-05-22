@@ -6,7 +6,7 @@ for the KdV equation
 import torch
 import torch.nn as nn
 
-from kdv import Domain
+from kdv import TrainingDomain
 from network import MLP
 
 #not finished yet
@@ -91,7 +91,7 @@ def init_loss_weights(init_weights: dict[str, float] = None) -> torch.Tensor:
     return weights
 
 #touch up once done with the KDV class
-def loss_components(neural_net: MLP, domain: Domain) -> torch.Tensor:
+def loss_components(neural_net: MLP, domain: TrainingDomain) -> torch.Tensor:
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
     pde = compute_pde_loss(neural_net, domain.x_coll, domain.t_coll)

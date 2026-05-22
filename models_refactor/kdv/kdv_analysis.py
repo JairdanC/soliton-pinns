@@ -104,14 +104,11 @@ def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: 
 
         
 def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
-    device = k_vec.device
-
-
     def aij(ki, kj):
         return 2*torch.log((ki - kj) / (ki + kj))
     
+    device = k_vec.device
     n = len(k_vec)
-     
 
     if n == 1: 
         return torch.tensor([0.0], device=device)
@@ -125,7 +122,6 @@ def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
         a12 = aij(k1, k2)
         a13 = aij(k1, k3)
         a23 = aij(k2, k3)
-
         return torch.tensor([0.0, a12, a13 + a23], device=device)
     else:
         raise ValueError('k_vec length is not equal to 1, 2, or 3, an invalid number of solitons phases')

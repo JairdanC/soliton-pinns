@@ -13,7 +13,7 @@ from network import MLP
 
 #Define domain dataclass, used to hold the points in domain
 @dataclass
-class Domain:
+class TrainingDomain:
     x_coll: torch.Tensor
     t_coll: torch.Tensor
     x_ic: torch.Tensor
@@ -22,6 +22,23 @@ class Domain:
     x_bc: torch.Tensor
     t_bc: torch.Tensor
     u_bc: torch.Tensor
+
+@dataclass
+class TestingDomain:
+
+
+@dataclass
+class Solutions:
+    exact: torch.Tensor
+    linear: torch.Tensor
+    predicted: torch.Tensor
+
+@dataclass
+class ErrorStats:
+    mae: float
+    max_error: float
+    error: torch.Tensor
+
 
 class KDV(nn.Module):
     def __init__(self, init_params) -> None:
@@ -106,10 +123,10 @@ class KDV(nn.Module):
     def train(self):
         return True
         
-    def test(self):
+    def test(self) -> ErrorStats:
         return True
     
-    def compute_solutions(self) -> dict[str, torch.Tensor]:
+    def compute_solutions(self) -> Solutions:
         return {'finish': torch.tensor([0])}
 
         

@@ -6,20 +6,19 @@ import torch.nn as nn
 import time
 import typing
 
-from kdv import Domain
+from kdv import TrainingDomain
 from kdv_loss import *
 from utils import *
 from network import *
 from kdv_analysis import linear_combination
 
 
-#Not fixed yet
 def setup_training_domain(
         n_collocation: int,
         n_initial: int,
         n_boundary: int,
         soliton_params: dict[str, torch.Tensor]
-        ) -> Domain:
+        ) -> TrainingDomain:
     
     device = soliton_params['x_lims'].device
     
@@ -47,7 +46,7 @@ def setup_training_domain(
     t_boundary = torch.cat([t_boundary_left, t_boundary_right], dim=0)
     u_boundary = torch.zeros_like(x_boundary, device=device)
 
-    domain = Domain(
+    domain = TrainingDomain(
         x_collocation,
         t_collocation,
         x_initial,

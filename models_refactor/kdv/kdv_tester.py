@@ -1,73 +1,30 @@
 import torch
+from kdv import ErrorStats
 
-def setup_testing_domain(self, nx=1000, nt=1000):
-        """
-        Create a regular grid for testing and visualization.
-        
-        Sets up a uniform meshgrid covering the entire domain
-        for evaluation and visualization of the PINN solution. The grid
-        is stored as instance variables for later use.
-        """
-        # unpack domain limits 
-        x0 = self.x_lims[0]
-        x1 = self.x_lims[1]
-        
-        t0 = self.t_lims[0]
-        t1 = self.t_lims[1]
+def setup_testing_domain(nx=1000, nt=1000):
 
-        # define points in each dimension *on CPU*  (we will stream them to GPU later when needed, to avoid OOM)
-        x = torch.linspace(x0, x1, nx)
-        t = torch.linspace(t0, t1, nt)
+    return
 
-        self.x_test = x.cpu().numpy()
-        self.t_test = t.cpu().numpy()
+def test(u_pred: torch.Tensor, u_exact: torch.Tensor,
+         error_type: str = 'absolute-normalized', verbose: bool = True
+         ) -> ErrorStats:
 
-        # meshgrid is also kept on CPU (for visualization)
-        X, T = torch.meshgrid(x, t, indexing='ij')
-        self.X_test = X
-        self.T_test = T
-        self.X_flat_test = X.reshape(-1, 1)
-        self.T_flat_test = T.reshape(-1, 1)
+    if error_type == 'absolute':
+        error = torch.abs(u_pred - u_exact)
+    elif error_type == 'absolute-normalized':
+        max_exact = torch.max(torch.abs(u_exact))
+        error = torch.abs(u_pred - u_exact) / max_exact
+    else:
+        raise ValueError(f'invalid error type: {error_type}')
+    
+    mae = torch.mean(error).item()
+    max_error = torch.max(error).item()
 
-        # Set flag indicating test domain has been created
-        self.test_domain_created = True
+    error_stats = ErrorStats(mae, max_error, error)
 
-        if self.verbose:
-            print(f"Testing domain created with {nx}x{nt} grid points.")
+    if verbose:
+        print(f"{error_type} error metrics:")
+        print(f"Mean: {mae:.6e}")
+        print(f"Maximum: {max_error:.6e}")
 
-        return
-
-def test(self, plot_heatmap = False, error_type: str = 'absolute-normalized'):
-        """
-        Compute error metrics between the predicted and analytical solutions.
-        Also plots the time-averaged error over (x, y) as a heatmap (log color scale).
-        """
-        # compute test solutions
-        self.compute_solutions()
-        
-        # Compute error (array of shape [nx, nt])
-        if error_type == 'absolute':
-            self.error = torch.abs(self.U_pred - self.U_exact)
-        elif error_type == 'absolute-normalized':
-            # compute the max value of the exact solution
-            max_exact = torch.max(torch.abs(self.U_exact))
-            self.error = torch.abs(self.U_pred - self.U_exact) / max_exact
-        else:
-            raise ValueError(f"Invalid error type: {error_type}")
-        
-        # Compute mean error
-        mae = torch.mean(self.error).item()
-        self.mae = mae
-        
-        # Compute maximum error (L-infinity norm)
-        max_error = torch.max(self.error).item()
-        self.max_error = max_error
-        
-        # Print a summary of the error metrics
-        if self.verbose:
-            print(f"{error_type} error metrics:")
-            print(f"Mean: {mae:.6e}")
-            print(f"Maximum: {max_error:.6e}")
-        
-        # Plot error heatmap if requested
-        
+    return error_stats
