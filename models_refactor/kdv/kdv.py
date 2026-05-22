@@ -4,12 +4,15 @@ This file is the base KDV physics informed neural network class, it call the oth
 
 import torch
 import torch.nn as nn
+import numpy as np
+import random
+import gc
 
 from dataclasses import dataclass
 
-import numpy as np
-import random
 from network import MLP
+
+from kdv_analysis import *
 
 #Define domain dataclass, used to hold the points in domain
 @dataclass
@@ -25,6 +28,8 @@ class TrainingDomain:
 
 @dataclass
 class TestingDomain:
+    x_test: torch.Tensor
+    t_test: torch.Tensor
 
 
 @dataclass
@@ -126,7 +131,29 @@ class KDV(nn.Module):
     def test(self) -> ErrorStats:
         return True
     
-    def compute_solutions(self) -> Solutions:
-        return {'finish': torch.tensor([0])}
+    def compute_solutions(self, domain: TestingDomain, test_batch: int = 20000
+                          ) -> Solutions:
+
+        with torch.inference_mode():
+            B = test_batch
+            n_points = domain.x_test.numel()
+
+            X_gpu = domain.x_test.to(self.device)
+            T_gpu = domain.t_test.to(self.device)
+            X_flat = X_gpu.reshape(-1, 1)
+            T_flat = T_gpu.reshape(-1, 1)
+
+            pred_chunks = []
+            for i in range(0, n_points, B):
+                pred_chunks.append(self.neural_net(X_flat[i:i+B]. T_flat[i:i+B]))
+            U_pred = torch.cat(pred_chunks)(domain.x_test.shape).cpu()
+        
+            if torch.cuda.is_available(): torch.cuda.empty_cache()
+
+        U_exact = n_soliton(domain.x_test, domain.t_test)
+        U_linear = linear_combination(domain.x_test, domain.t_test)
+
+        solution = Solutions(U_exact, U_linear, U_pred)
+        return solution
 
         

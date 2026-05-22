@@ -1,9 +1,22 @@
 import torch
 from kdv import ErrorStats
+from kdv import TestingDomain
 
-def setup_testing_domain(nx=1000, nt=1000):
+def setup_testing_domain(x_lims: torch.Tensor, t_lims: torch.Tensor,
+                        nx: int = 1000, nt: int = 1000
+                        ) -> TestingDomain:
+    x0 = x_lims[0]
+    x1 = x_lims[1]
+    t0 = t_lims[0]
+    t1 = t_lims[1]
 
-    return
+    x_axis = torch.linspace(x0, x1, nx)
+    t_axis = torch.linspace(t0, t1, nt)
+
+    X, T = torch.meshgrid(x_axis, t_axis, indexing='ij')
+
+    domain = TestingDomain(X, T)
+    return domain
 
 def test(u_pred: torch.Tensor, u_exact: torch.Tensor,
          error_type: str = 'absolute-normalized', verbose: bool = True
