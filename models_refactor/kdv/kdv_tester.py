@@ -1,6 +1,6 @@
 import torch
-from kdv import ErrorStats
-from kdv import TestingDomain
+from kdv_types import ErrorStats
+from kdv_types import TestingDomain
 
 def setup_testing_domain(x_lims: torch.Tensor, t_lims: torch.Tensor,
                         nx: int = 1000, nt: int = 1000

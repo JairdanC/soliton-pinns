@@ -15,37 +15,7 @@ from network import MLP
 import kdv_trainer as trainer
 
 from kdv_analysis import *
-
-#Define domain dataclass, used to hold the points in domain
-@dataclass
-class TrainingDomain:
-    x_coll: torch.Tensor
-    t_coll: torch.Tensor
-    x_ic: torch.Tensor
-    t_ic: torch.Tensor
-    u_ic: torch.Tensor
-    x_bc: torch.Tensor
-    t_bc: torch.Tensor
-    u_bc: torch.Tensor
-
-@dataclass
-class TestingDomain:
-    x_test: torch.Tensor
-    t_test: torch.Tensor
-
-
-@dataclass
-class Solutions:
-    exact: torch.Tensor
-    linear: torch.Tensor
-    predicted: torch.Tensor
-
-@dataclass
-class ErrorStats:
-    mae: float
-    max_error: float
-    error: torch.Tensor
-
+from kdv_types import *
 
 class KDV(nn.Module):
     def __init__(self, init_params) -> None:
