@@ -6,7 +6,7 @@ import torch.nn as nn
 import time
 import typing
 
-from kdv import TrainingDomain
+from kdv_types import TrainingDomain
 from kdv_loss import *
 from utils import *
 from network import *

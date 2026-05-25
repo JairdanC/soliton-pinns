@@ -6,7 +6,7 @@ for the KdV equation
 import torch
 import torch.nn as nn
 
-from kdv import TrainingDomain
+from kdv_types import TrainingDomain
 from network import MLP
 
 #not finished yet
