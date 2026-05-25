@@ -95,16 +95,16 @@ class KDV(nn.Module):
             case 2:
                 x_lims = torch.tensor([-35, 50], device=self.device)
                 t_lims = torch.tensor([-20, 35], device=self.device)
-                k1 = torch.sqrt(4/4) 
-                k2 = torch.sqrt(1.2/4) 
+                k1 = torch.tensor(4/4, device=self.device).sqrt() 
+                k2 = torch.tensor(1.2/4, device=self.device).sqrt()
                 phi1 = 0.0
                 phi2 = 0.0
                 k_vector = torch.tensor([k1, k2], device=self.device)
                 phi_vector = torch.tensor([phi1, phi2], device=self.device)
             case 3:
-                k1 = torch.sqrt(1.0)
-                k2 = torch.sqrt(0.8)
-                k3 = torch.sqrt(0.5)
+                k1 = torch.tensor(1.0, device=self.device).sqrt()
+                k2 = torch.tensor(0.8, device=self.device).sqrt()
+                k3 = torch.tensor(0.5, device=self.device).sqrt()
                 x_lims = torch.tensor([-35, 65], device=self.device)
                 t_lims = torch.tensor([-25, 50], device=self.device)
                 phi1 = 0.0
@@ -145,13 +145,15 @@ class KDV(nn.Module):
 
             pred_chunks = []
             for i in range(0, n_points, B):
-                pred_chunks.append(self.neural_net(X_flat[i:i+B]. T_flat[i:i+B]))
-            U_pred = torch.cat(pred_chunks)(domain.x_test.shape).cpu()
+                pred_chunks.append(self.neural_net(X_flat[i:i+B], T_flat[i:i+B]))
+            U_pred = torch.cat(pred_chunks).reshape(domain.x_test.shape).cpu()
         
             if torch.cuda.is_available(): torch.cuda.empty_cache()
 
-        U_exact = n_soliton(domain.x_test, domain.t_test)
-        U_linear = linear_combination(domain.x_test, domain.t_test)
+        U_exact = n_soliton(domain.x_test, domain.t_test, 
+                            self.soliton_params['k_vec'], self.soliton_params['phi_vec'])
+        U_linear = linear_combination(domain.x_test, domain.t_test,
+                                      self.soliton_params['k_vec'], self.soliton_params['phi_vec'])
 
         solution = Solutions(U_exact, U_linear, U_pred)
         return solution

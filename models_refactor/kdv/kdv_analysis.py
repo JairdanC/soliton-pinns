@@ -16,7 +16,7 @@ def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: 
     k = torch.as_tensor(k_vec, dtype=torch.float64, device=x.device)
     d = torch.as_tensor(delta_vec, dtype=torch.float64, device=x.device)
 
-    n = len(k)
+    n = k.numel()
 
     # single soliton solution
     if n == 1:
@@ -129,7 +129,7 @@ def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
 
 def linear_combination(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, phi_vec: torch.Tensor) -> torch.Tensor:
     shifts = phase_shifts(k_vec=k_vec)
-    u = torch.zeros_like(x, device=k_vec.device)
+    u = torch.zeros_like(x)
 
     for k_i, phi_i, delta_i in zip(k_vec, phi_vec, shifts):
         k_1d = k_i.unsqueeze(0)
