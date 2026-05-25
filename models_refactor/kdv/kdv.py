@@ -7,10 +7,12 @@ import torch.nn as nn
 import numpy as np
 import random
 import gc
+import typing
 
 from dataclasses import dataclass
 
 from network import MLP
+import kdv_trainer as trainer
 
 from kdv_analysis import *
 
@@ -125,8 +127,10 @@ class KDV(nn.Module):
         #here is where testing domain is called in the original code seems too early
         return
 
-    def train(self):
-        return True
+    #wrapper function to call to module
+    def train(self, train_params: dict[str, typing.Any], train_weights: dict[str: float]):
+        training_stats = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
+        return training_stats
         
     def test(self) -> ErrorStats:
         return True
