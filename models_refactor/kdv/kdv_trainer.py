@@ -83,7 +83,7 @@ def train(
     }
     params = {**defaults, **train_params} #unpack parameters
     losses = init_loss_list() #returns the loss dict
-    loss_weights = init_loss_weights(train_weights) #returns a torch tensor for compute
+    loss_weights = init_loss_weights(device, train_weights) #returns a torch tensor for compute
 
     #start wall-clock timer
     start_time = time.time() #export this function to utils later

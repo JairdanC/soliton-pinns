@@ -80,15 +80,17 @@ def init_loss_list() -> dict[str, list[float]]:
     }
     return losses
 
-def init_loss_weights(init_weights: dict[str, float] = None) -> torch.Tensor:
-    default_weights = {
+def init_loss_weights(device, init_weights: dict[str, float] = None) -> torch.Tensor:
+    defaults = {
         'w_ic': 1.0,
         'w_bc': 1.0,
         'w_pde': 1.0
     }
-    default_weights.update(init_weights) #overwrites any existing key with the user defined value
-    weights = torch.tensor(list(init_weights.values()))
-    return weights
+    if init_weights is not None:
+        dict_weights = defaults | init_weights #overwrites any existing key with the user defined value
+        weights = torch.tensor(list(dict_weights.values()), device=device)
+        return weights
+    else: return torch.tensor(list(defaults.values()), device=device)
 
 #touch up once done with the KDV class
 def loss_components(neural_net: MLP, domain: TrainingDomain) -> torch.Tensor:
