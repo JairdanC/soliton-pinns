@@ -92,30 +92,29 @@ def init_loss_weights(device, init_weights: dict[str, float] = None) -> torch.Te
         return weights
     else: return torch.tensor(list(defaults.values()), device=device)
 
-#touch up once done with the KDV class
 def loss_components(neural_net: MLP, domain: TrainingDomain) -> torch.Tensor:
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
     pde = compute_pde_loss(neural_net, domain.x_coll, domain.t_coll)
-
-    components = torch.tensor([ic, bc, pde], device=domain.x_coll.device)
+    
+    components = torch.stack([ic, bc, pde])
     return components
 
 def compute_total_loss(weights: torch.Tensor, components: torch.Tensor) -> torch.Tensor:
     total = torch.dot(weights, components)
     return total
 
-def update_loss_list(losses: dict[str, list[float]], total_loss: torch.Tensor, loss_comps: dict[str, torch.Tensor]) -> None:
+def update_loss_list(losses: dict[str, list[float]], total_loss: torch.Tensor, loss_comps: torch.Tensor) -> None:
     losses['total'].append(float(total_loss))
-    losses['initial'].append(float(loss_comps['ic']))
-    losses['boundary'].append(float(loss_comps['bc']))
-    losses['pde'].append(float(loss_comps['pde']))
+    losses['initial'].append(float(loss_comps[0]))
+    losses['boundary'].append(float(loss_comps[1]))
+    losses['pde'].append(float(loss_comps[2]))
 
-def update_last_vals(last_vals: dict[str, float], total_loss: torch.Tensor, loss_comps: dict[str, torch.Tensor]) -> None:
+def update_last_vals(last_vals: dict[str, float], total_loss: torch.Tensor, loss_comps: torch.Tensor) -> None:
     last_vals['total'] = float(total_loss)
-    last_vals['initial'] = float(loss_comps['ic'])
-    last_vals['boundary'] = float(loss_comps['bc'])
-    last_vals['pde'] = float(loss_comps['pde'])
+    last_vals['initial'] = float(loss_comps[0])
+    last_vals['boundary'] = float(loss_comps[1])
+    last_vals['pde'] = float(loss_comps[2])
 
 def append_last_vals(losses: dict[str, list[float]], last_vals: dict[str, float]) -> None:
     losses['total'].append(last_vals['total'])

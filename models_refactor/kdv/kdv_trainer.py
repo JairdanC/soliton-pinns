@@ -89,7 +89,7 @@ def train(
     start_time = time.time() #export this function to utils later
 
     domain = setup_training_domain(
-        ['n_collocation'],
+        params['n_collocation'],
         params['n_initial'],
         params['n_boundary'],
         soliton_params
@@ -126,7 +126,7 @@ def train(
     if params['lbfgs_version'] == 'old':
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components()
+            loss_comps = loss_components(neural_net, domain)
             total_loss = compute_total_loss(loss_weights, loss_comps)
             total_loss.backward()
 
@@ -168,7 +168,7 @@ def train(
 
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components()
+            loss_comps = loss_components(neural_net, domain)
             total_loss = compute_total_loss(loss_weights, loss_comps)
             total_loss.backward()
 

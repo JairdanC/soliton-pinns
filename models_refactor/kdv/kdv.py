@@ -50,7 +50,7 @@ class KDV(nn.Module):
 
         # set device to GPU (if available) otherwise CPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        if self.verbose:
+        if self.char_params['verbose']:
             print(f"Using device: {self.device}")
 
         self.neural_net = MLP(self.char_params['n_hidden_layers'], self.char_params['n_neurons_per_layer'], self.char_params['activation'], self.char_params['use_layernorm'], input=2, output=1)
