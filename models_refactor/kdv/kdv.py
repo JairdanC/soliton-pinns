@@ -15,6 +15,7 @@ from network import MLP
 import kdv_trainer as trainer
 
 from kdv_analysis import *
+from kdv_tester import *
 from kdv_types import *
 
 class KDV(nn.Module):
@@ -102,7 +103,10 @@ class KDV(nn.Module):
         training_stats = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
         return training_stats
         
-    def test(self) -> ErrorStats:
+    def test(self, nx: int = 1000, nt: int = 1000, error_type='absolute-normalized') -> ErrorStats:
+        domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
+        solutions = self.compute_solutions(domain)
+        test(solutions.predicted, solutions.exact, error_type, self.char_params['verbose'])
         return True
     
     def compute_solutions(self, domain: TestingDomain, test_batch: int = 20000
