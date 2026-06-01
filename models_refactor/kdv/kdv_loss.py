@@ -9,7 +9,7 @@ import torch.nn as nn
 from kdv_types import TrainingDomain
 from network import MLP
 
-#not finished yet
+
 def compute_pde_loss(neural_net: MLP, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     """
     Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
@@ -99,7 +99,7 @@ def loss_components(neural_net: MLP, domain: TrainingDomain) -> torch.Tensor:
     
     components = torch.stack([ic, bc, pde])
     return components
-
+    
 def compute_total_loss(weights: torch.Tensor, components: torch.Tensor) -> torch.Tensor:
     total = torch.dot(weights, components)
     return total

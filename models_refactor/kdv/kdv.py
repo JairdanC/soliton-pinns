@@ -135,5 +135,3 @@ class KDV(nn.Module):
 
         solution = Solutions(U_exact, U_linear, U_pred)
         return solution
-
-        

@@ -4,10 +4,8 @@ used across training a PINN on the KdV equation for computing error and initial 
 """
 
 #READY TO TEST
-
 import torch
 
-#PRIME CANDIDATES FOR TORCH.compile
 def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: torch.Tensor) -> torch.Tensor:
     
     # promote to float64 tensors on the same device
@@ -126,7 +124,7 @@ def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
     else:
         raise ValueError('k_vec length is not equal to 1, 2, or 3, an invalid number of solitons phases')
     
-
+@torch.compile(fullgraph=True)
 def linear_combination(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, phi_vec: torch.Tensor) -> torch.Tensor:
     shifts = phase_shifts(k_vec=k_vec)
     u = torch.zeros_like(x)
@@ -134,7 +132,8 @@ def linear_combination(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, ph
     for k_i, phi_i, delta_i in zip(k_vec, phi_vec, shifts):
         k_1d = k_i.unsqueeze(0)
         phase_1d = (phi_i + delta_i).unsqueeze(0)
-        u += n_soliton(x, t, k_1d, phase_1d)
-
+        temp = n_soliton(x, t, k_1d, phase_1d)
+        u = u + temp 
+        
     return u
 

@@ -79,7 +79,8 @@ def train(
         'lbfgs_history_size': 100,
         'adaptive_sampling': False,
         'lbfgs_version': 'old', # 'old' or 'new'
-        'verbose': True
+        'verbose': True,
+        'logging': True
     }
     params = {**defaults, **train_params} #unpack parameters
     losses = init_loss_list() #returns the loss dict
@@ -110,7 +111,8 @@ def train(
         total_loss.backward()
         optimizer.step()
 
-        update_loss_list(losses, total_loss, loss_comps)
+        if params['logging']:
+            update_loss_list(losses, total_loss, loss_comps)
 
         if params['verbose'] and (epoch % params['verbose_step'] == 0 or epoch == params['adam_epochs'] - 1):
             print(f"Adam - Epoch {epoch}/{params['adam_epochs']}, Total Loss: {total_loss.item():.6e}")
@@ -122,38 +124,8 @@ def train(
 
     #L-BFGS optimization
     if params['verbose']: print("\nStarting L-BFGS optimization...")
-    #potential delete later
-    if params['lbfgs_version'] == 'old':
-        def closure():
-            optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components(neural_net, domain)
-            total_loss = compute_total_loss(loss_weights, loss_comps)
-            total_loss.backward()
 
-            update_loss_list(losses, total_loss, loss_comps)
-
-            if params['verbose'] and len(losses['total']) % params['verbose_step'] == 0:
-                print(f"L-BFGS - Iteration {len(losses['total']) - params['adam_epochs']}, Total Loss: {total_loss.item():.6e}")
-        
-            return total_loss
-        
-        optimizer = torch.optim.LBFGS(neural_net.parameters(),
-                                    lr= params['lbfgs_lr'], 
-                                    max_iter=params['lbfgs_epochs'],
-                                    max_eval=params['lbfgs_epochs']*2,
-                                    tolerance_grad=1e-9,
-                                    tolerance_change=1e-16,
-                                    history_size=params['lbfgs_history_size'],
-                                    line_search_fn="strong_wolfe"
-                                    )
-        
-        optimizer.step(closure)
-
-        if params['verbose']:
-            print(f"L-BFGS complete, Final Loss: {losses['total'][-1]:.6e}")
-
-    elif params['lbfgs_version'] == 'new':
-        optimizer = torch.optim.LBFGS(
+    optimizer = torch.optim.LBFGS(
                 neural_net.parameters(),
                 lr=params['lbfgs_lr'],
                 max_iter=1,                  #one accepted iteration per step()
@@ -163,29 +135,26 @@ def train(
                 history_size=params['lbfgs_history_size'],
                 line_search_fn="strong_wolfe",
             )
-        
-        last_vals = {}
 
-        def closure():
-            optimizer.zero_grad(set_to_none=True)
+    def closure():
+        optimizer.zero_grad(set_to_none=True)
+        loss_comps = loss_components(neural_net, domain)
+        total_loss = compute_total_loss(loss_weights, loss_comps)
+        total_loss.backward()
+        return total_loss
+
+    for i in range(params['lbfgs_epochs']):
+        optimizer.step(closure)
+
+        if params['logging']:
             loss_comps = loss_components(neural_net, domain)
             total_loss = compute_total_loss(loss_weights, loss_comps)
-            total_loss.backward()
+            update_loss_list(losses, total_loss, loss_comps)
 
-            update_last_vals(last_vals, total_loss, loss_comps)
-
-            return total_loss
         
-        for i in range(params['lbfgs_epochs']):
-            loss = optimizer.step(closure)
-            append_last_vals(losses, last_vals)
+        if params['verbose'] and (i % params['verbose_step'] == 0 or i == params['lbfgs_epochs'] - 1):
+                print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {total_loss.item():.6e}")
 
-            if params['verbose'] and (i % params['verbose_step'] == 0 or i == params['lbfgs_epochs'] - 1):
-                print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {float(loss):.6e}")
-
-    else: 
-        raise ValueError("lbfgs_version only implemented for" \
-        "\'old\' and \'new\', must be defined as such")
 
     log_gpu_memory("after L-BFGS")
 
