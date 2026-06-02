@@ -3,11 +3,18 @@ This file contains the analytical methods used for obtaining the exact solutions
 used across training a PINN on the KdV equation for computing error and initial conditions and visualization
 """
 
-#READY TO TEST
 import torch
 
-def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: torch.Tensor) -> torch.Tensor:
-    
+def n_soliton(x: torch.Tensor, 
+              t: torch.Tensor, 
+              k_vec: torch.Tensor,
+              delta_vec: torch.Tensor
+              ) -> torch.Tensor:
+    """
+    Uses Hirota form to evaluate an exact solution to n solitons with the 
+    passed soliton parameters
+    """
+
     # promote to float64 tensors on the same device
     x_d = x.to(torch.float64)
     t_d = t.to(torch.float64)
@@ -102,6 +109,11 @@ def n_soliton(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, delta_vec: 
 
         
 def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the phase shifts for the linear combination of single-soliton solutions.
+    """
+
+
     def aij(ki, kj):
         return 2*torch.log((ki - kj) / (ki + kj))
     
@@ -125,7 +137,16 @@ def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
         raise ValueError('k_vec length is not equal to 1, 2, or 3, an invalid number of solitons phases')
     
 @torch.compile(fullgraph=True)
-def linear_combination(x: torch.Tensor, t: torch.Tensor, k_vec: torch.Tensor, phi_vec: torch.Tensor) -> torch.Tensor:
+def linear_combination(x: torch.Tensor,
+                       t: torch.Tensor, 
+                       k_vec: torch.Tensor, 
+                       phi_vec: torch.Tensor
+                       ) -> torch.Tensor:
+    """
+    Computes the linear solution of n soliton by creating a linear combination of single
+    solitons, excluding the nonlinearity
+    """
+
     shifts = phase_shifts(k_vec=k_vec)
     u = torch.zeros_like(x)
 

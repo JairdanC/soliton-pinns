@@ -7,7 +7,18 @@ class MLP(nn.Module):
     was used in the physics-informed neural network paper
     """
 
-    def __init__(self, n_hidden_layers=2, n_neurons_per_layer=9, activation=nn.Tanh, use_layernorm=False, input=2, output=1):
+    def __init__(self, n_hidden_layers=2,
+                 n_neurons_per_layer=9,
+                 activation=nn.Tanh, 
+                 use_layernorm=False,
+                 input=2, 
+                 output=1
+                 ) -> None:
+        """
+        Initialization for a multilayer perceptron using a sequence of nn.Linear, activation and (if true) layernorm
+        layers to build the network 
+        """
+
         super(MLP, self).__init__()
 
         n_output_nodes = output #u is default
@@ -25,12 +36,12 @@ class MLP(nn.Module):
         self.model = nn.Sequential(*layer_list) #combine into a layer model
         self.initialize_weights()
 
-    def initialize_weights(self):
+    def initialize_weights(self) -> None:
         for layer in self.model:
             if isinstance(layer, nn.Linear):
                 nn.init.xavier_normal_(layer.weight) #Xavier normal initialization
                 nn.init.zeros_(layer.bias) #Zero initialization for biases
             
-    def forward(self, x, t):
+    def forward(self, x, t) -> torch.Tensor:
         inputs = torch.cat([x, t], dim=1) #combine into a single layer tensor
         return self.model(inputs)

@@ -2,9 +2,17 @@ import torch
 from kdv_types import ErrorStats
 from kdv_types import TestingDomain
 
-def setup_testing_domain(x_lims: torch.Tensor, t_lims: torch.Tensor,
-                        nx: int = 1000, nt: int = 1000
-                        ) -> TestingDomain:
+def setup_testing_domain(x_lims: torch.Tensor, 
+                         t_lims: torch.Tensor,
+                         nx: int = 1000, nt: int = 1000
+                         ) -> TestingDomain:
+    """
+    Setup the testing domain on a regular grid from on the x and t limits
+    with nx and nt collocation points respectively, return a TestingDomain
+    dataclass
+    """
+
+
     x0 = x_lims[0]
     x1 = x_lims[1]
     t0 = t_lims[0]
@@ -18,9 +26,15 @@ def setup_testing_domain(x_lims: torch.Tensor, t_lims: torch.Tensor,
     domain = TestingDomain(X, T)
     return domain
 
-def test(u_pred: torch.Tensor, u_exact: torch.Tensor,
-         error_type: str = 'absolute-normalized', verbose: bool = True
+def test(u_pred: torch.Tensor, 
+         u_exact: torch.Tensor,
+         error_type: str = 'absolute-normalized', 
+         verbose: bool = True
          ) -> ErrorStats:
+    """
+    Find the absolute-normalized (or absolute) difference between the exact and
+    predicted solution over the regular testing grid, return as a ErrorStats dataclass
+    """
 
     if error_type == 'absolute':
         error = torch.abs(u_pred - u_exact)

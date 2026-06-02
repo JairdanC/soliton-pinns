@@ -1,6 +1,7 @@
 """
 This file contains the functions used in training the given neural network including the setup_training_domain_
 """
+
 import torch
 import torch.nn as nn
 import time
@@ -13,12 +14,11 @@ from network import *
 from kdv_analysis import linear_combination
 
 
-def setup_training_domain(
-        n_collocation: int,
-        n_initial: int,
-        n_boundary: int,
-        soliton_params: dict[str, torch.Tensor]
-        ) -> TrainingDomain:
+def setup_training_domain(n_collocation: int,
+                          n_initial: int,
+                          n_boundary: int,
+                          soliton_params: dict[str, torch.Tensor]
+                          ) -> TrainingDomain:
     """
     Setup the training domain and return it as a custom datatype (found in kdv_types), generating tensors of 
     coordinates and exact soliton solutions where applicable (ic, bc) on model device
@@ -63,13 +63,12 @@ def setup_training_domain(
 
     return domain
 
-def train(
-        neural_net: MLP,
-        soliton_params: dict[str, torch.Tensor], 
-        train_params: dict[str, typing.Any],
-        train_weights: dict[str, float], 
-        device: torch.DeviceLikeType,
-        ) -> dict[str, typing.Any]:
+def train(neural_net: MLP,
+          soliton_params: dict[str, torch.Tensor], 
+          train_params: dict[str, typing.Any],
+          train_weights: dict[str, float], 
+          device: torch.DeviceLikeType,
+          ) -> dict[str, typing.Any]:
     """
     Calls to setup_training_domain to create its own training domain, then uses a Adam -> L-BFGS optimization scheme
     returning a dict of training data
@@ -118,7 +117,7 @@ def train(
     for epoch in range(params['adam_epochs']):
         optimizer.zero_grad(set_to_none=True)
         loss_comps = loss_components(neural_net, domain)
-        total_loss = compute_total_loss(loss_weights, loss_comps)
+        total_loss = torch.dot(loss_weights, loss_comps)
         total_loss.backward()
         optimizer.step()
 
@@ -152,7 +151,7 @@ def train(
         def closure():
             optimizer.zero_grad(set_to_none=True)
             loss_comps = loss_components(neural_net, domain)
-            total_loss = compute_total_loss(loss_weights, loss_comps)
+            total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
 
             update_loss_list(losses, total_loss, loss_comps)
@@ -183,7 +182,7 @@ def train(
         def closure():
             optimizer.zero_grad(set_to_none=True)
             loss_comps = loss_components(neural_net, domain)
-            total_loss = compute_total_loss(loss_weights, loss_comps)
+            total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
             return total_loss
 
@@ -192,13 +191,13 @@ def train(
 
             if params['logging']:
                 loss_comps = loss_components(neural_net, domain)
-                total_loss = compute_total_loss(loss_weights, loss_comps)
+                total_loss = torch.dot(loss_weights, loss_comps)
                 update_loss_list(losses, total_loss, loss_comps)
             
             if params['verbose'] and (i % params['verbose_step'] == 0 or i == params['lbfgs_epochs'] - 1):
                     if not params['logging']:
                         loss_comps = loss_components(neural_net, domain)
-                        total_loss = compute_total_loss(loss_weights, loss_comps)
+                        total_loss = torch.dot(loss_weights, loss_comps)
                     print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {total_loss.item():.6e}")
 
     if params['verbose']: log_gpu_memory("after L-BFGS")

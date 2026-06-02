@@ -10,10 +10,14 @@ from kdv_types import TrainingDomain
 from network import MLP
 
 
-def compute_pde_loss(neural_net: MLP, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+def compute_pde_loss(neural_net: MLP, 
+                     x: torch.Tensor, 
+                     t: torch.Tensor
+                     ) -> torch.Tensor:
     """
     Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
     """
+
     # copies of x and t that require gradients
     x = x.clone().detach().requires_grad_(True)
     t = t.clone().detach().requires_grad_(True)
@@ -55,23 +59,37 @@ def compute_pde_loss(neural_net: MLP, x: torch.Tensor, t: torch.Tensor) -> torch
 
     return loss
 
-def compute_initial_loss(neural_net: MLP, u_ic: torch.Tensor, x_ic: torch.Tensor, t_ic: torch.Tensor) -> torch.Tensor:
+def compute_initial_loss(neural_net: MLP, 
+                         u_ic: torch.Tensor, 
+                         x_ic: torch.Tensor, 
+                         t_ic: torch.Tensor
+                         ) -> torch.Tensor:
     """
     Compute the initial loss for the KdV equation. (ICs)
     """
+
     u_pred_initial = neural_net(x_ic, t_ic)
     initial_loss = torch.mean((u_pred_initial - u_ic)**2)
     return initial_loss
 
-def compute_boundary_loss(neural_net: MLP, u_bc: torch.Tensor, x_bc: torch.Tensor, t_bc: torch.Tensor) -> torch.Tensor:
+def compute_boundary_loss(neural_net: MLP, 
+                          u_bc: torch.Tensor, 
+                          x_bc: torch.Tensor, 
+                          t_bc: torch.Tensor
+                          ) -> torch.Tensor:
     """
     Compute the boundary loss for the KdV equation. (BCs)
     """
+
     u_pred_boundary = neural_net(x_bc, t_bc)
     boundary_loss = torch.mean((u_pred_boundary - u_bc)**2)
     return boundary_loss
 
 def init_loss_list() -> dict[str, list[float]]:
+    """
+    Initializes and returns a loss list to hold the logged training losses
+    """
+
     losses = {
         'total': [],
         'initial': [],
@@ -80,7 +98,13 @@ def init_loss_list() -> dict[str, list[float]]:
     }
     return losses
 
-def init_loss_weights(device, init_weights: dict[str, float] = None) -> torch.Tensor:
+def init_loss_weights(device, 
+                      init_weights: dict[str, float]
+                      ) -> torch.Tensor:
+    """
+    Initializes the loss weights per component
+    """
+
     defaults = {
         'w_ic': 1.0,
         'w_bc': 1.0,
@@ -92,7 +116,13 @@ def init_loss_weights(device, init_weights: dict[str, float] = None) -> torch.Te
         return weights
     else: return torch.tensor(list(defaults.values()), device=device)
 
-def loss_components(neural_net: MLP, domain: TrainingDomain) -> torch.Tensor:
+def loss_components(neural_net: MLP,
+                    domain: TrainingDomain
+                    ) -> torch.Tensor:
+    """
+    Calculates the loss per-component and returns it as a stacked torch tensor  
+    """
+
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
     pde = compute_pde_loss(neural_net, domain.x_coll, domain.t_coll)
@@ -100,23 +130,41 @@ def loss_components(neural_net: MLP, domain: TrainingDomain) -> torch.Tensor:
     components = torch.stack([ic, bc, pde])
     return components
     
-def compute_total_loss(weights: torch.Tensor, components: torch.Tensor) -> torch.Tensor:
-    total = torch.dot(weights, components)
-    return total
 
-def update_loss_list(losses: dict[str, list[float]], total_loss: torch.Tensor, loss_comps: torch.Tensor) -> None:
+def update_loss_list(losses: dict[str, list[float]], 
+                     total_loss: torch.Tensor, 
+                     loss_comps: torch.Tensor
+                     ) -> None:
+    """
+    Updates the loss list formatted as a dict passed as a parameter,
+    used for logging
+    """
+
     losses['total'].append(float(total_loss))
     losses['initial'].append(float(loss_comps[0]))
     losses['boundary'].append(float(loss_comps[1]))
     losses['pde'].append(float(loss_comps[2]))
 
-def update_last_vals(last_vals: dict[str, float], total_loss: torch.Tensor, loss_comps: torch.Tensor) -> None:
+def update_last_vals(last_vals: dict[str, float], 
+                     total_loss: torch.Tensor, 
+                     loss_comps: torch.Tensor
+                     ) -> None:
+    """
+    Update the lost dict used for state tracking
+    """
+
     last_vals['total'] = float(total_loss)
     last_vals['initial'] = float(loss_comps[0])
     last_vals['boundary'] = float(loss_comps[1])
     last_vals['pde'] = float(loss_comps[2])
 
-def append_last_vals(losses: dict[str, list[float]], last_vals: dict[str, float]) -> None:
+def append_last_vals(losses: dict[str, list[float]],
+                     last_vals: dict[str, float]
+                     ) -> None:
+    """
+    Update the loss list using a state dict
+    """
+    
     losses['total'].append(last_vals['total'])
     losses['initial'].append(last_vals['initial'])
     losses['boundary'].append(last_vals['boundary'])

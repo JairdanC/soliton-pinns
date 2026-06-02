@@ -1,12 +1,6 @@
-"""
-This file is the base KDV physics informed neural network class, it call the other 
-"""
-
 import torch
 import torch.nn as nn
-import numpy as np
 import random
-import gc
 import typing
 
 from dataclasses import dataclass
@@ -19,7 +13,11 @@ from kdv_tester import *
 from kdv_types import *
 
 class KDV(nn.Module):
-    def __init__(self, init_params) -> None:
+    def __init__(self, init_params
+                 ) -> None:
+        """
+        The initialization of a PINN using a MLP architecture to solve the KdV equation
+        """
 
         #defaults
         defaults = dict(
@@ -37,15 +35,14 @@ class KDV(nn.Module):
 
         super(KDV, self).__init__() #calls the constructor of the parent class (PyTorch function)
 
+        #Enforce deterministic seeding
         if self.char_params['seed'] is not None:
             self.seed = int(self.char_params['seed'])
             random.seed(self.seed)
-            np.random.seed(self.seed)
             torch.manual_seed(self.seed)
             if torch.cuda.is_available():
                 torch.cuda.manual_seed(self.seed)
                 torch.cuda.manual_seed_all(self.seed)
-            # enforce deterministic behaviour in cuDNN
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
 
@@ -99,18 +96,42 @@ class KDV(nn.Module):
         return
 
     #wrapper function to call to module
-    def train(self, train_params: dict[str, typing.Any], train_weights: dict[str: float]):
+    def train(self, train_params: dict[str, typing.Any], 
+              train_weights: dict[str, float]
+              ) -> dict[str, typing.Any]:
+        """
+        The training of the neural network calling to the trainer module for helper functions,
+        current error is due to inconsistent override with nn.Module super class, this is intentional.
+        However it will need to be changed if Dropout or BatchNorm layers are to be included later
+        """
+
+        super(KDV, self).train(True)
         training_stats = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
+        super(KDV, self).train(False)
         return training_stats
         
-    def test(self, nx: int = 1000, nt: int = 1000, error_type='absolute-normalized') -> ErrorStats:
+    def test(self, nx: int = 1000, 
+             nt: int = 1000, 
+             error_type='absolute-normalized'
+             ) -> ErrorStats:
+        """
+        Test the current state of the neural network by computing exact solutions and 
+        comparing them against model inference along a nx * nt grid, return the
+        error statistics as a ErrorStats dataclass 
+        """
+        
         domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
         solutions = self.compute_solutions(domain)
-        test(solutions.predicted, solutions.exact, error_type, self.char_params['verbose'])
-        return True
+        error_stats = test(solutions.predicted, solutions.exact, error_type, self.char_params['verbose'])
+        return error_stats
     
-    def compute_solutions(self, domain: TestingDomain, test_batch: int = 20000
+    def compute_solutions(self, domain: TestingDomain, 
+                          test_batch: int = 20000
                           ) -> Solutions:
+        """
+        Compute the exact, linear and prediction solutions and return them as
+        a Solutions dataclass
+        """
 
         with torch.inference_mode():
             B = test_batch
