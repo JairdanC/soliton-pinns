@@ -7,7 +7,8 @@ import torch.nn as nn
 import time
 import typing
 
-from kdv_types import TrainingDomain
+from kdv_types import TrainingDomain, TrainingStats
+
 from kdv_loss import *
 from utils import *
 from network import *
@@ -68,7 +69,7 @@ def train(neural_net: MLP,
           train_params: dict[str, typing.Any],
           train_weights: dict[str, float], 
           device: torch.DeviceLikeType,
-          ) -> dict[str, typing.Any]:
+          ) -> TrainingStats:
     """
     Calls to setup_training_domain to create its own training domain, then uses a Adam -> L-BFGS optimization scheme
     returning a dict of training data
@@ -202,12 +203,10 @@ def train(neural_net: MLP,
 
     if params['verbose']: log_gpu_memory("after L-BFGS")
 
-    training_stats = {
-        'losses': losses,
-        'training time': time.time() - start_time
-    }
+    training_stats = TrainingStats(losses, (time.time() - start_time))
+   
 
-    if params['verbose']: print(f"Training completed in {training_stats['training time']:.2f} s")
+    if params['verbose']: print(f"Training completed in {training_stats.time:.2f} s")
     
     if params['verbose']: 
         loss_comps = loss_components(neural_net, domain)

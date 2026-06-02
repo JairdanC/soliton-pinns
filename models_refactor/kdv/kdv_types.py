@@ -29,3 +29,8 @@ class ErrorStats:
     mae: float
     max_error: float
     error: torch.Tensor
+
+@dataclass
+class TrainingStats:
+    losses: dict[str, list[float]]
+    time: float

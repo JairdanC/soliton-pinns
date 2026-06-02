@@ -1,12 +1,16 @@
 import torch
 import torch.nn as nn
+import matplotlib
+import matplotlib.pyplot as plt
 import random
-import typing
 
-from dataclasses import dataclass
+import typing
+from matplotlib.figure import Figure
+
 
 from network import MLP
 import kdv_trainer as trainer
+import kdv_visualizer as plotter
 
 from kdv_analysis import *
 from kdv_tester import *
@@ -98,7 +102,7 @@ class KDV(nn.Module):
     #wrapper function to call to module
     def train(self, train_params: dict[str, typing.Any], 
               train_weights: dict[str, float]
-              ) -> dict[str, typing.Any]:
+              ) -> TrainingStats:
         """
         The training of the neural network calling to the trainer module for helper functions,
         current error is due to inconsistent override with nn.Module super class, this is intentional.
@@ -106,6 +110,7 @@ class KDV(nn.Module):
         """
 
         super(KDV, self).train(True)
+        self.adam_epochs = train_params['adam_epochs'] #stashed for use in plotting
         training_stats = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
         super(KDV, self).train(False)
         return training_stats
@@ -156,3 +161,58 @@ class KDV(nn.Module):
 
         solution = Solutions(U_exact, U_linear, U_pred)
         return solution
+    
+    #Wrapper to call without specific solutions
+    def plot_profiles(self, t_values: list[int], 
+                      which: tuple[str, ...] = ('predicted', ),
+                      nx: int = 1000,
+                      nt: int = 1000
+                      ) -> Figure:
+        
+
+        domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
+        solutions = self.compute_solutions(domain)
+        plot = plotter.plot_profiles(t_values, domain, solutions, which)
+        return plot
+    
+    #Wrapper call
+    def plot_losses(self, training_stats: TrainingStats,
+                    components: list[str] = ['total', 'pde', 'boundary', 'initial'], 
+                    ) -> Figure:
+        
+
+        return plotter.plot_losses(components, training_stats.losses, self.adam_epochs)
+    
+    #Wrapper call without specific solutions
+    def plot_spacetime(self,
+                       nx: int = 1000,
+                       nt: int = 1000,
+                       scatter_which: tuple[str, ...] | None = None,
+                       training_domain: TrainingDomain | None = None
+                       ) -> Figure:
+        
+        domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
+        solutions = self.compute_solutions(domain)
+        if scatter_which is not None and training_domain is not None:
+            scatter_coords = {}
+            for key in scatter_which:
+                match key:
+                    case 'boundary':
+                        coords = torch.cat((training_domain.x_bc, training_domain.t_bc), 0)
+                    case 'pde':
+                        coords = torch.cat((training_domain.x_coll, training_domain.t_coll), 0)
+                    case 'initial':
+                        coords = torch.cat((training_domain.x_ic, training_domain.t_ic), 0)
+                    case _:
+                        raise ValueError(f'Each key in scatter_which must be pde, initial or boundary.')
+                
+                scatter_coords[key] = coords
+            
+            return plotter.plot_spacetime(domain, solutions.predicted, scatter_coords=scatter_coords)
+        
+        elif scatter_which is not None or training_domain is not None:
+            raise ValueError('To scatter plot overlay the spacetime plot you must include both the ' \
+            'keys of which conditions you want to scatter (pde, initial or boundary) AND the training domain')
+        
+        else:
+            return plotter.plot_spacetime(domain, solutions.predicted)

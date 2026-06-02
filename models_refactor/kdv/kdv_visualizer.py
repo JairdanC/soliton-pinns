@@ -2,23 +2,38 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+from kdv_types import TestingDomain, Solutions
+from matplotlib.figure import Figure
+
 FIG_SIZE = (15,4)
 
-def plot_profiles(t_values: list[int], x_test: torch.Tensor, t_test: torch.Tensor, solutions: dict[str, torch.Tensor], which: tuple[str, ...]=("predicted",)) -> None:
+def plot_profiles(t_values: list[int], 
+                  domain: TestingDomain,
+                  solutions: Solutions, 
+                  which: tuple[str, ...]=("predicted",)
+                  ) -> Figure:
+    """Plots the specified profiles of a given set of solutions"""
     
-    x = x_test.cpu().numpy()
-    t = t_test.cpu().numpy()
+    x = domain.x_test.cpu().numpy()
+    t = domain.t_test.cpu().numpy()
     
-    plt.figure(figsize=FIG_SIZE)
+    fig = plt.figure(figsize=FIG_SIZE)
 
     for sol_key in which:
-        if sol_key not in ('predicted', 'exact', 'linear'):
-            raise ValueError(f'Each key in which must be predicted, exact or linear.')
+        match sol_key:
+            case 'exact':
+                sol_field = solutions.exact.cpu().numpy()
+            case 'linear':
+                sol_field = solutions.exact.cpu().numpy()
+            case 'predicted':
+                sol_field = solutions.predicted.cpu().numpy()
+            case _:
+               raise ValueError(f'Each key in which must be predicted, exact or linear.')
+        
         t_axis = t[0, :]
         indices = [int(np.argmin(np.abs(t_axis - t_val))) for t_val in t_values]
-        sol_field = solutions[sol_key].cpu().numpy()
-        profiles = [sol_field[:, idx] for idx in indices]
         x_axis = x[:, 0]
+        profiles = [sol_field[:, idx] for idx in indices]
 
         for t_val, profile in zip(t_values, profiles):
             plt.plot(x_axis, profile, label=f'{sol_key} t= {t_val}')
@@ -29,12 +44,15 @@ def plot_profiles(t_values: list[int], x_test: torch.Tensor, t_test: torch.Tenso
     plt.grid(True)
     plt.tight_layout()        
 
-    return 
+    return fig
 
 
-def plot_losses(components: list[str], losses: dict[str, list[torch.Tensor]], adam_epochs: int) -> None:
+def plot_losses(components: list[str], 
+                losses: dict[str, list[float]], 
+                adam_epochs: int
+                ) -> Figure:
 
-    plt.figure(figsize=FIG_SIZE)
+    fig = plt.figure(figsize=FIG_SIZE)
 
     for comp in components:
         if comp in losses:
@@ -53,24 +71,36 @@ def plot_losses(components: list[str], losses: dict[str, list[torch.Tensor]], ad
     plt.legend()
     plt.tight_layout()
     
-    return
+    return fig
 
-# spacetime
-def plot_spacetime(x_test: torch.Tensor, t_test: torch.Tensor, u_pred: torch.Tensor) -> None:
-    x = x_test.cpu().numpy()
-    t = t_test.cpu().numpy()
+
+def plot_spacetime(domain: TestingDomain,
+                   u_pred: torch.Tensor,
+                   scatter_coords: dict[str, torch.Tensor] | None = None
+                   ) -> Figure:
+
+    x = domain.x_test.cpu().numpy()
+    t = domain.t_test.cpu().numpy()
     u = u_pred.cpu().numpy()
     
-    plt.figure(figsize=FIG_SIZE)
+    fig = plt.figure(figsize=FIG_SIZE)
 
 
     contour = plt.pcolormesh(t[0,:], x[:,0], u, cmap='plasma', shading='auto')
     plt.colorbar(contour, label='u(x,t)')
 
-    #missing scatter function, will restore later
+    if scatter_coords is not None:
+        i = 0 
+        markers = ['x', 'X', '.', '8', 'o']
+        colors = ['black', 'white', 'grey', 'lightgrey', 'midnight blue']
+        for key, coords in scatter_coords.items():
+            scatter_x = coords[0].cpu().numpy()
+            scatter_t = coords[1].cpu().numpy()
+            plt.scatter(scatter_t, scatter_x, marker=markers[i], color=colors[i], alpha=0.5)
+            i += 1
     
     plt.xlabel('Time (t)')
     plt.ylabel('Position (x)')
     plt.tight_layout()
 
-    return
+    return fig
