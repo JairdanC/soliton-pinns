@@ -112,7 +112,7 @@ def plot_spacetime(domain: TestingDomain,
             scatter_x = coords[0].cpu().numpy()
             scatter_t = coords[1].cpu().numpy()
             plt.scatter(scatter_t, scatter_x, marker=settings[key][0], color=settings[key][1],
-                        alpha=0.5, s=settings[key][2])
+                        alpha=0.5, s=settings[key][2], label=key)
         
         plt.legend(loc='upper right', fontsize='small')
 

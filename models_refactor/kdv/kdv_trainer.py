@@ -64,6 +64,49 @@ def setup_training_domain(n_collocation: int,
 
     return domain
 
+def adaptive_sampling(domain: TrainingDomain,
+                      neural_net: MLP,
+                      x_lims: torch.Tensor,
+                      t_lims: torch.Tensor,
+                      n_new: int
+                      ) -> None:
+    """
+    Add later
+    """
+    device = x_lims.device
+    print(device)
+    num = torch.tensor([n_new])
+    
+    n_grid = int(torch.sqrt(10 * num))
+    x_dense = torch.linspace(x_lims[0], x_lims[1], n_grid, device=device)
+    t_dense = torch.linspace(t_lims[0], t_lims[1], n_grid, device=device)
+    x_grid, t_grid = torch.meshgrid(x_dense, t_dense, indexing='ij')
+    x_flat = x_grid.reshape(-1, 1)
+    t_flat = t_grid.reshape(-1, 1)
+    print(f'{x_flat.device} | {x_flat.shape}')
+    print(f'{t_flat.device} | {t_flat.shape}')
+
+    B = 1000
+    n_points = x_flat.numel()
+    residuals_list = []
+
+    for i in range (0, n_points, B):
+        x_batch = x_flat[i:i+B]
+        t_batch = t_flat[i:i+B]
+        res_batch = torch.abs(compute_pde_residual(neural_net, x_batch, t_batch)).detach()
+        residuals_list.append(res_batch)
+
+    residuals = torch.cat(residuals_list, dim=0).flatten()
+    idx = torch.topk(residuals, n_new)[1]
+
+    x_new = x_flat[idx]
+    t_new = t_flat[idx]
+
+    domain.x_coll = torch.cat((domain.x_coll, x_new))
+    domain.t_coll = torch.cat((domain.t_coll, t_new))
+
+
+
 def train(neural_net: MLP,
           soliton_params: dict[str, torch.Tensor], 
           train_params: dict[str, typing.Any],
@@ -131,7 +174,11 @@ def train(neural_net: MLP,
     if params['verbose']: log_gpu_memory("after Adam")
 
     #adaptive sampling would go here
-    
+    if params['adaptive_sampling']:
+        if params['verbose']: print(f'Performing adaptive sampling...')
+        adaptive_sampling(domain, neural_net, soliton_params['x_lims'],
+                          soliton_params['t_lims'], params['n_collocation'])
+        if params['verbose']: print(f'Collocation points from {params['n_collocation']} -> {domain.x_coll.numel()}')
 
     #L-BFGS optimization
     if params['verbose']: print("\nStarting L-BFGS optimization...")
@@ -214,4 +261,4 @@ def train(neural_net: MLP,
 
     return training_stats
 
-  
+
