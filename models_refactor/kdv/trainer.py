@@ -71,7 +71,7 @@ def adaptive_sampling(domain: TrainingDomain,
                       n_new: int
                       ) -> None:
     """
-    Add later
+    Adds n_new collocation points to 
     """
     device = x_lims.device
     print(device)
@@ -112,10 +112,10 @@ def train(neural_net: MLP,
           train_params: dict[str, typing.Any],
           train_weights: dict[str, float], 
           device: torch.DeviceLikeType,
-          ) -> TrainingStats:
+          ) -> tuple[TrainingStats, TrainingDomain]:
     """
     Calls to setup_training_domain to create its own training domain, then uses a Adam -> L-BFGS optimization scheme
-    returning a dict of training data
+    returning a dataclass of the training statistics and domain used during the training
     """
 
     #set defaults
@@ -259,6 +259,6 @@ def train(neural_net: MLP,
         loss_comps = loss_components(neural_net, domain)
         print_weighted_loss_components(loss_weights, loss_comps, tag='end')
 
-    return training_stats
+    return training_stats, domain
 
 

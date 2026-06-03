@@ -8,13 +8,13 @@ import typing
 from matplotlib.figure import Figure
 
 
-from network import MLP
-import kdv_trainer as trainer
-import kdv_visualizer as plotter
+from models_refactor.network import MLP
+import models_refactor.kdv.trainer as trainer
+import models_refactor.kdv.visualizer as plotter
 
-from kdv_analysis import *
-from kdv_tester import *
-from kdv_types import *
+from models_refactor.kdv.methods import *
+from models_refactor.kdv.tester import *
+from models_refactor.kdv.types import *
 
 class KDV(nn.Module):
     def __init__(self, init_params
@@ -103,18 +103,21 @@ class KDV(nn.Module):
     #wrapper function to call to module
     def train(self, train_params: dict[str, typing.Any], 
               train_weights: dict[str, float]
-              ) -> TrainingStats:
+              ) -> tuple[TrainingStats, TrainingDomain]:
         """
-        The training of the neural network calling to the trainer module for helper functions,
-        current error is due to inconsistent override with nn.Module super class, this is intentional.
+        The training of the neural network calling to the trainer module for helper functions, returns a
+        tuple of the training statistics and the domain over which it was trained.
+
+
+        Current error is due to inconsistent override with nn.Module super class, this is intentional.
         However it will need to be changed if Dropout or BatchNorm layers are to be included later
         """
 
         super(KDV, self).train(True)
         self.adam_epochs = train_params['adam_epochs'] #stashed for use in plotting
-        training_stats = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
+        training_stats, domain = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
         super(KDV, self).train(False)
-        return training_stats
+        return training_stats, domain
     
         
     def test(self, nx: int = 1000, 

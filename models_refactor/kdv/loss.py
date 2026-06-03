@@ -6,8 +6,8 @@ for the KdV equation
 import torch
 import torch.nn as nn
 
-from kdv_types import TrainingDomain
-from network import MLP
+from models_refactor.kdv.types import TrainingDomain
+from models_refactor.network import MLP
 
 
 def compute_pde_residual(neural_net: MLP, 
