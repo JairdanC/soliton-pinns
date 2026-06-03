@@ -5,7 +5,7 @@ used across training a PINN on the KdV equation for computing error and initial 
 
 import torch
 
-@torch.compile(fullgraph=True)
+@torch.compile()
 def n_soliton(x: torch.Tensor, 
               t: torch.Tensor, 
               k_vec: torch.Tensor,
@@ -159,3 +159,11 @@ def linear_combination(x: torch.Tensor,
         
     return u
 
+@torch.compile(fullgraph=True, mode='reduce-overhead')
+def energy_integral(u: torch.Tensor, 
+                    x: torch.Tensor
+                    ) -> torch.Tensor:
+    
+    u_squared = u**2
+    energies = torch.trapz(u_squared, x, dim=0)
+    return energies

@@ -11,3 +11,5 @@
 **/__pycache__
 *.pyc
 
+#Scrap Jupyter
+notebooks/scrap.ipynb

@@ -8,7 +8,8 @@ import torch.nn as nn
 #Types
 from .types import TrainingDomain
 from ..network import MLP
-
+#Methods
+from .methods import energy_integral
 
 def compute_pde_residual(neural_net: MLP, 
                      x: torch.Tensor, 
@@ -57,6 +58,22 @@ def compute_pde_residual(neural_net: MLP,
 
     return residual
 
+
+def compute_energy_int_residual(neural_net: MLP,
+                                u_energy: torch.Tensor,
+                                x_energy: torch.Tensor,
+                                t_energy: torch.Tensor
+                                ) -> torch.Tensor:
+    
+    x_grid, t_grid = torch.meshgrid(x_energy, t_energy, indexing='ij')
+    u_pred = neural_net(x_grid, t_grid)
+    energy_pred = energy_integral(u_pred, x_energy)
+
+    residual = energy_pred - u_energy
+
+    return residual
+    
+
 def compute_initial_loss(neural_net: MLP, 
                          u_ic: torch.Tensor, 
                          x_ic: torch.Tensor, 
@@ -92,7 +109,8 @@ def init_loss_list() -> dict[str, list[float]]:
         'total': [],
         'initial': [],
         'boundary': [],
-        'pde': []
+        'pde': [],
+        'energy': []
     }
     return losses
 
@@ -106,7 +124,8 @@ def init_loss_weights(device,
     defaults = {
         'w_ic': 1.0,
         'w_bc': 1.0,
-        'w_pde': 1.0
+        'w_pde': 1.0,
+        'w_energy': 1.0
     }
     if init_weights is not None:
         dict_weights = defaults | init_weights #overwrites any existing key with the user defined value
@@ -124,8 +143,9 @@ def loss_components(neural_net: MLP,
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
     pde = torch.mean(compute_pde_residual(neural_net, domain.x_coll, domain.t_coll)**2)
-    
-    components = torch.stack([ic, bc, pde])
+    energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_energy, domain.t_energy)**2)
+
+    components = torch.stack([ic, bc, pde, energy])
     return components
     
 
@@ -142,6 +162,7 @@ def update_loss_list(losses: dict[str, list[float]],
     losses['initial'].append(float(loss_comps[0]))
     losses['boundary'].append(float(loss_comps[1]))
     losses['pde'].append(float(loss_comps[2]))
+    losses['energy'].append(float(loss_comps[3]))
 
 def update_last_vals(last_vals: dict[str, float], 
                      total_loss: torch.Tensor, 
@@ -155,6 +176,7 @@ def update_last_vals(last_vals: dict[str, float],
     last_vals['initial'] = float(loss_comps[0])
     last_vals['boundary'] = float(loss_comps[1])
     last_vals['pde'] = float(loss_comps[2])
+    last_vals['energy'] = float(loss_comps[3])
 
 def append_last_vals(losses: dict[str, list[float]],
                      last_vals: dict[str, float]
@@ -167,3 +189,4 @@ def append_last_vals(losses: dict[str, list[float]],
     losses['initial'].append(last_vals['initial'])
     losses['boundary'].append(last_vals['boundary'])
     losses['pde'].append(last_vals['pde'])
+    losses['energy'].append(last_vals['energy'])

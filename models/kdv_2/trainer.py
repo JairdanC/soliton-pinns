@@ -12,13 +12,14 @@ from .types import TrainingDomain, TrainingStats
 from .loss import *
 from ..utils import *
 from ..network import *
-from .methods import linear_combination
+from .methods import linear_combination, energy_integral
 
 
 
 def setup_training_domain(n_collocation: int,
                           n_initial: int,
                           n_boundary: int,
+                          n_energy: int,
                           soliton_params: dict[str, torch.Tensor]
                           ) -> TrainingDomain:
     """
@@ -53,6 +54,11 @@ def setup_training_domain(n_collocation: int,
     t_boundary = torch.cat([t_boundary_left, t_boundary_right], dim=0)
     u_boundary = torch.zeros_like(x_boundary, device=device)
 
+    #energy points
+    x_energy = x_initial.clone().detach()
+    t_energy = torch.linspace(t0, t1, n_energy, device=device).reshape(-1, 1)
+    u_energy = energy_integral(u_initial, x_energy)
+
     domain = TrainingDomain(
         x_collocation,
         t_collocation,
@@ -61,7 +67,10 @@ def setup_training_domain(n_collocation: int,
         u_initial,
         x_boundary,
         t_boundary,
-        u_boundary)
+        u_boundary,
+        x_energy,
+        t_energy,
+        u_energy)
 
     return domain
 
@@ -72,7 +81,7 @@ def adaptive_sampling(domain: TrainingDomain,
                       n_new: int
                       ) -> None:
     """
-    Adds n_new collocation points to 
+    Adds n_new collocation points to the domain based on the locations where there is the highest residual error
     """
     device = x_lims.device
     num = torch.tensor([n_new], device=device)
@@ -124,6 +133,7 @@ def train(neural_net: MLP,
         'n_collocation': 30000,
         'n_initial': 30000,
         'n_boundary': 30000,
+        'n_energy': 30,
         'adam_lr': 0.001,
         'lbfgs_lr': 1.0,
         'lbfgs_history_size': 100,
@@ -143,6 +153,7 @@ def train(neural_net: MLP,
         params['n_collocation'],
         params['n_initial'],
         params['n_boundary'],
+        params['n_energy'],
         soliton_params
     )
 
