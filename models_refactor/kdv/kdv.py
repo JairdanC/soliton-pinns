@@ -98,6 +98,7 @@ class KDV(nn.Module):
             
         #here is where testing domain is called in the original code seems too early
         return
+    
 
     #wrapper function to call to module
     def train(self, train_params: dict[str, typing.Any], 
@@ -114,6 +115,7 @@ class KDV(nn.Module):
         training_stats = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
         super(KDV, self).train(False)
         return training_stats
+    
         
     def test(self, nx: int = 1000, 
              nt: int = 1000, 
@@ -129,6 +131,7 @@ class KDV(nn.Module):
         solutions = self.compute_solutions(domain)
         error_stats = test(solutions.predicted, solutions.exact, error_type, self.char_params['verbose'])
         return error_stats
+    
     
     def compute_solutions(self, domain: TestingDomain, 
                           test_batch: int = 20000
@@ -162,34 +165,47 @@ class KDV(nn.Module):
         solution = Solutions(U_exact, U_linear, U_pred)
         return solution
     
+    
     #Wrapper to call without specific solutions
     def plot_profiles(self, t_values: list[int], 
                       which: tuple[str, ...] = ('predicted', ),
                       nx: int = 1000,
                       nt: int = 1000
                       ) -> Figure:
+        """
+        Auto-run version of the profiler in which the current model recomputes the solutions and then those
+        profiles are passed to the plotter, overload will be added where a domain and solutions (already ran)
+        can be plotted
+        """
         
-
         domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
         solutions = self.compute_solutions(domain)
         plot = plotter.plot_profiles(t_values, domain, solutions, which)
         return plot
     
+    
     #Wrapper call
     def plot_losses(self, training_stats: TrainingStats,
                     components: list[str] = ['total', 'pde', 'boundary', 'initial'], 
                     ) -> Figure:
-        
+        """
+        Plot the losses given in the training stats returned from a training run
+        """
 
         return plotter.plot_losses(components, training_stats.losses, self.adam_epochs)
     
+
     #Wrapper call without specific solutions
-    def plot_spacetime(self,
-                       nx: int = 1000,
+    def plot_spacetime(self, nx: int = 1000,
                        nt: int = 1000,
                        scatter_which: tuple[str, ...] | None = None,
                        training_domain: TrainingDomain | None = None
                        ) -> Figure:
+        """
+        Auto-run version of the spacetime in which the current model recomputes the solutions and then those
+        solutions are passed to the plotter, overload will be added where a domain and solution (already ran)
+        can be plotted
+        """
         
         domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
         solutions = self.compute_solutions(domain)
@@ -198,11 +214,11 @@ class KDV(nn.Module):
             for key in scatter_which:
                 match key:
                     case 'boundary':
-                        coords = torch.cat((training_domain.x_bc, training_domain.t_bc), 0)
+                        coords = torch.stack((training_domain.x_bc, training_domain.t_bc), 0)
                     case 'pde':
-                        coords = torch.cat((training_domain.x_coll, training_domain.t_coll), 0)
+                        coords = torch.stack((training_domain.x_coll, training_domain.t_coll), 0)
                     case 'initial':
-                        coords = torch.cat((training_domain.x_ic, training_domain.t_ic), 0)
+                        coords = torch.stack((training_domain.x_ic, training_domain.t_ic), 0)
                     case _:
                         raise ValueError(f'Each key in scatter_which must be pde, initial or boundary.')
                 
@@ -216,3 +232,19 @@ class KDV(nn.Module):
         
         else:
             return plotter.plot_spacetime(domain, solutions.predicted)
+        
+        
+    def plot_heatmap(self, nx: int = 1000,
+                     nt: int = 1000,
+                     error_type: str = 'absolute-normalized'
+                     ) -> Figure:
+        """
+        Auto-run version of the heatmap in which the current model is re-evaluated and then those
+        errors are passed to the plotter, overload will be added where a domain and error (already ran)
+        can be plotted
+        """
+
+        domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
+        error_stats = self.test(nx, nt, error_type)
+        fig = plotter.plot_heatmap(error_stats.error, domain)
+        return fig

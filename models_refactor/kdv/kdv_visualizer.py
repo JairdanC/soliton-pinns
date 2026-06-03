@@ -1,4 +1,6 @@
+
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import numpy as np
 import torch
 
@@ -12,7 +14,9 @@ def plot_profiles(t_values: list[int],
                   solutions: Solutions, 
                   which: tuple[str, ...]=("predicted",)
                   ) -> Figure:
-    """Plots the specified profiles of a given set of solutions"""
+    """
+    Plots the specified profiles of a given set of solutions
+    """
     
     x = domain.x_test.cpu().numpy()
     t = domain.t_test.cpu().numpy()
@@ -51,6 +55,9 @@ def plot_losses(components: list[str],
                 losses: dict[str, list[float]], 
                 adam_epochs: int
                 ) -> Figure:
+    """
+    Plots the losses of a given training run of a model
+    """
 
     fig = plt.figure(figsize=FIG_SIZE)
 
@@ -78,6 +85,10 @@ def plot_spacetime(domain: TestingDomain,
                    u_pred: torch.Tensor,
                    scatter_coords: dict[str, torch.Tensor] | None = None
                    ) -> Figure:
+    """
+    Plots the specified spacetime mesh of a given predicted solution, a scatter function
+    is avaible to show the different coordinates used in training
+    """
 
     x = domain.x_test.cpu().numpy()
     t = domain.t_test.cpu().numpy()
@@ -90,17 +101,45 @@ def plot_spacetime(domain: TestingDomain,
     plt.colorbar(contour, label='u(x,t)')
 
     if scatter_coords is not None:
-        i = 0 
-        markers = ['x', 'X', '.', '8', 'o']
-        colors = ['black', 'white', 'grey', 'lightgrey', 'midnight blue']
+
+        settings = {
+            'boundary': ('.', 'red', 1),
+            'initial': ('x', 'white', 3),
+            'pde': ('.', 'black', 0.3)
+        }
+
         for key, coords in scatter_coords.items():
             scatter_x = coords[0].cpu().numpy()
             scatter_t = coords[1].cpu().numpy()
-            plt.scatter(scatter_t, scatter_x, marker=markers[i], color=colors[i], alpha=0.5)
-            i += 1
+            plt.scatter(scatter_t, scatter_x, marker=settings[key][0], color=settings[key][1],
+                        alpha=0.5, s=settings[key][2])
+        
+        plt.legend(loc='upper right', fontsize='small')
+
     
     plt.xlabel('Time (t)')
     plt.ylabel('Position (x)')
     plt.tight_layout()
 
     return fig
+
+def plot_heatmap(error: torch.Tensor,
+                 domain: TestingDomain) -> Figure:
+    """
+    Plots the error of a model as a heatmap
+    """
+    
+    x = domain.x_test.cpu().numpy()
+    t = domain.t_test.cpu().numpy()
+    error_plot = error.cpu().numpy()
+
+    fig = plt.figure(figsize=FIG_SIZE)
+
+    contour = plt.pcolormesh(t[0,:], x[:,0], error_plot, cmap='hot', norm=LogNorm())
+    plt.colorbar(contour, label='Error')
+    plt.xlabel('Time (t)')
+    plt.ylabel('Position (x)')
+    plt.tight_layout()
+
+    return fig
+    
