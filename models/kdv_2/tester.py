@@ -1,6 +1,7 @@
+#Libraries
 import torch
-from models_refactor.kdv.types import ErrorStats
-from models_refactor.kdv.types import TestingDomain
+#Types
+from .types import ErrorStats, TestingDomain
 
 def setup_testing_domain(x_lims: torch.Tensor, 
                          t_lims: torch.Tensor,
@@ -11,7 +12,6 @@ def setup_testing_domain(x_lims: torch.Tensor,
     with nx and nt collocation points respectively, return a TestingDomain
     dataclass
     """
-
 
     x0 = x_lims[0]
     x1 = x_lims[1]

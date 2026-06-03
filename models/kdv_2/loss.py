@@ -2,12 +2,12 @@
 This file contains the methods used in computing the loss of the neural network during the training of a PINN
 for the KdV equation
 """
-
+#Libraries
 import torch
 import torch.nn as nn
-
-from models_refactor.kdv.types import TrainingDomain
-from models_refactor.network import MLP
+#Types
+from .types import TrainingDomain
+from ..network import MLP
 
 
 def compute_pde_residual(neural_net: MLP, 

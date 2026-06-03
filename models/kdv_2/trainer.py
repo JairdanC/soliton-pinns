@@ -7,12 +7,12 @@ import torch.nn as nn
 import time
 import typing
 
-from kdv_types import TrainingDomain, TrainingStats
+from .types import TrainingDomain, TrainingStats
 
-from kdv_loss import *
-from utils import *
-from network import *
-from kdv_analysis import linear_combination
+from .loss import *
+from ..utils import *
+from ..network import *
+from .methods import linear_combination
 
 
 def setup_training_domain(n_collocation: int,
@@ -74,17 +74,14 @@ def adaptive_sampling(domain: TrainingDomain,
     Adds n_new collocation points to 
     """
     device = x_lims.device
-    print(device)
-    num = torch.tensor([n_new])
+    num = torch.tensor([n_new], device=device)
     
     n_grid = int(torch.sqrt(10 * num))
-    x_dense = torch.linspace(x_lims[0], x_lims[1], n_grid, device=device)
-    t_dense = torch.linspace(t_lims[0], t_lims[1], n_grid, device=device)
+    x_dense = torch.linspace(x_lims[0].item(), x_lims[1].item(), n_grid, device=device)
+    t_dense = torch.linspace(t_lims[0].item(), t_lims[1].item(), n_grid, device=device)
     x_grid, t_grid = torch.meshgrid(x_dense, t_dense, indexing='ij')
     x_flat = x_grid.reshape(-1, 1)
     t_flat = t_grid.reshape(-1, 1)
-    print(f'{x_flat.device} | {x_flat.shape}')
-    print(f'{t_flat.device} | {t_flat.shape}')
 
     B = 1000
     n_points = x_flat.numel()

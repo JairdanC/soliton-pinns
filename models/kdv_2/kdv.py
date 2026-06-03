@@ -1,22 +1,26 @@
+"""
+The base KdV PINN solver class, calls to init, fit, solutions and plotting
+"""
+
+#Libraries
 import torch
 import torch.nn as nn
 import matplotlib
 import matplotlib.pyplot as plt
 import random
-
+#Types
 import typing
 from matplotlib.figure import Figure
+#Scripts
+from . import trainer
+from . import visualizer
+#Methods
+from ..network import MLP
+from .methods import n_soliton, linear_combination
+from .tester import setup_testing_domain, test
+from .types import *
 
-
-from models_refactor.network import MLP
-import models_refactor.kdv.trainer as trainer
-import models_refactor.kdv.visualizer as plotter
-
-from models_refactor.kdv.methods import *
-from models_refactor.kdv.tester import *
-from models_refactor.kdv.types import *
-
-class KDV(nn.Module):
+class KDV_LEGACY(nn.Module):
     def __init__(self, init_params
                  ) -> None:
         """
@@ -37,7 +41,7 @@ class KDV(nn.Module):
         # Merge user params with defaults for the characteristic parameters of the neural network
         self.char_params = {**defaults, **init_params}
 
-        super(KDV, self).__init__() #calls the constructor of the parent class (PyTorch function)
+        super(KDV_LEGACY, self).__init__() #calls the constructor of the parent class (PyTorch function)
 
         #Enforce deterministic seeding
         if self.char_params['seed'] is not None:
@@ -101,22 +105,18 @@ class KDV(nn.Module):
     
 
     #wrapper function to call to module
-    def train(self, train_params: dict[str, typing.Any], 
+    def fit(self, train_params: dict[str, typing.Any], 
               train_weights: dict[str, float]
               ) -> tuple[TrainingStats, TrainingDomain]:
         """
-        The training of the neural network calling to the trainer module for helper functions, returns a
+        The training (named fit as to not interfer with PyTorch superclass) of the neural network calling to the trainer module for helper functions, returns a
         tuple of the training statistics and the domain over which it was trained.
-
-
-        Current error is due to inconsistent override with nn.Module super class, this is intentional.
-        However it will need to be changed if Dropout or BatchNorm layers are to be included later
         """
 
-        super(KDV, self).train(True)
+        super(KDV_LEGACY, self).train(True)
         self.adam_epochs = train_params['adam_epochs'] #stashed for use in plotting
         training_stats, domain = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
-        super(KDV, self).train(False)
+        super(KDV_LEGACY, self).train(False)
         return training_stats, domain
     
         
@@ -183,7 +183,7 @@ class KDV(nn.Module):
         
         domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
         solutions = self.compute_solutions(domain)
-        plot = plotter.plot_profiles(t_values, domain, solutions, which)
+        plot = visualizer.plot_profiles(t_values, domain, solutions, which)
         return plot
     
     
@@ -195,7 +195,7 @@ class KDV(nn.Module):
         Plot the losses given in the training stats returned from a training run
         """
 
-        return plotter.plot_losses(components, training_stats.losses, self.adam_epochs)
+        return visualizer.plot_losses(components, training_stats.losses, self.adam_epochs)
     
 
     #Wrapper call without specific solutions
@@ -227,14 +227,14 @@ class KDV(nn.Module):
                 
                 scatter_coords[key] = coords
             
-            return plotter.plot_spacetime(domain, solutions.predicted, scatter_coords=scatter_coords)
+            return visualizer.plot_spacetime(domain, solutions.predicted, scatter_coords=scatter_coords)
         
         elif scatter_which is not None or training_domain is not None:
             raise ValueError('To scatter plot overlay the spacetime plot you must include both the ' \
             'keys of which conditions you want to scatter (pde, initial or boundary) AND the training domain')
         
         else:
-            return plotter.plot_spacetime(domain, solutions.predicted)
+            return visualizer.plot_spacetime(domain, solutions.predicted)
         
         
     def plot_heatmap(self, nx: int = 1000,
@@ -249,5 +249,5 @@ class KDV(nn.Module):
 
         domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
         error_stats = self.test(nx, nt, error_type)
-        fig = plotter.plot_heatmap(error_stats.error, domain)
+        fig = visualizer.plot_heatmap(error_stats.error, domain)
         return fig
