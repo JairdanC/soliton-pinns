@@ -15,6 +15,7 @@ from ..network import *
 from .methods import linear_combination
 
 
+
 def setup_training_domain(n_collocation: int,
                           n_initial: int,
                           n_boundary: int,

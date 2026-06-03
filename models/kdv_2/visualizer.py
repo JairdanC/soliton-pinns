@@ -7,7 +7,8 @@ import torch
 from .types import TestingDomain, Solutions
 from matplotlib.figure import Figure
 
-FIG_SIZE = (15,4)
+FIG_SIZE_LONG = (15,4)
+FIG_SIZE_SHORT = (8, 4)
 
 def plot_profiles(t_values: list[int], 
                   domain: TestingDomain,
@@ -21,7 +22,7 @@ def plot_profiles(t_values: list[int],
     x = domain.x_test.cpu().numpy()
     t = domain.t_test.cpu().numpy()
     
-    fig, ax = plt.subplots(figsize=FIG_SIZE)
+    fig, ax = plt.subplots(figsize=FIG_SIZE_LONG)
 
     for sol_key in which:
         match sol_key:
@@ -55,7 +56,7 @@ def plot_losses(components: list[str],
     Plots the losses of a given training run of a model
     """
 
-    fig, ax = plt.subplots(figsize=FIG_SIZE)
+    fig, ax = plt.subplots(figsize=FIG_SIZE_LONG)
 
     for comp in components:
         if comp in losses:
@@ -66,7 +67,7 @@ def plot_losses(components: list[str],
     if adam_epochs > 0: #does not include the optimizer switch if adam_epochs =< 0
         ax.axvline(x=adam_epochs, color='r', linestyle='--', alpha=0.7)
         ax.text(adam_epochs + 5, 0.2, 'Adam → L-BFGS', 
-                rotation=90, verticalalignment='center', transform=ax.gca().get_xaxis_transform())
+                rotation=90, verticalalignment='center', transform=plt.gca().get_xaxis_transform())
 
     ax.set_yscale('log')
     ax.set_xlabel('Epoch')
@@ -90,7 +91,7 @@ def plot_spacetime(domain: TestingDomain,
     t = domain.t_test.cpu().numpy()
     u = u_pred.cpu().numpy()
     
-    fig, ax = plt.subplots(figsize=FIG_SIZE)
+    fig, ax = plt.subplots(figsize=FIG_SIZE_SHORT)
 
 
     contour = ax.pcolormesh(t[0,:], x[:,0], u, cmap='plasma', shading='auto')
@@ -130,7 +131,7 @@ def plot_heatmap(error: torch.Tensor,
     t = domain.t_test.cpu().numpy()
     error_plot = error.cpu().numpy()
 
-    fig, ax = plt.subplots(figsize=FIG_SIZE)
+    fig, ax = plt.subplots(figsize=FIG_SIZE_SHORT)
 
     contour = ax.pcolormesh(t[0,:], x[:,0], error_plot, cmap='hot', norm=LogNorm())
     fig.colorbar(contour, ax=ax, label='Error')

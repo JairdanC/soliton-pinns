@@ -1,8 +1,8 @@
 import torch
 from dataclasses import dataclass
 
-@dataclass
-class TrainingDomain(slots=True):
+@dataclass(slots=True)
+class TrainingDomain():
     x_coll: torch.Tensor
     t_coll: torch.Tensor
     x_ic: torch.Tensor
@@ -12,25 +12,25 @@ class TrainingDomain(slots=True):
     t_bc: torch.Tensor
     u_bc: torch.Tensor
 
-@dataclass
-class TestingDomain(frozen=True, slots=True):
+@dataclass(frozen=True, slots=True)
+class TestingDomain():
     x_test: torch.Tensor
     t_test: torch.Tensor
 
 
-@dataclass
-class Solutions(frozen=True, slots=True):
+@dataclass(frozen=True, slots=True)
+class Solutions():
     exact: torch.Tensor
     linear: torch.Tensor
     predicted: torch.Tensor
 
-@dataclass
-class ErrorStats(frozen=True, slots=True):
+@dataclass(frozen=True, slots=True)
+class ErrorStats():
     mae: float
     max_error: float
     error: torch.Tensor
 
-@dataclass
-class TrainingStats(frozen=True, slots=True):
+@dataclass(frozen=True, slots=True)
+class TrainingStats():
     losses: dict[str, list[float]]
     time: float

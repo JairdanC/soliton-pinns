@@ -14,7 +14,7 @@ from pathlib import Path
 import time
 import random  
 
-class KDV(nn.Module):
+class KDV_LEGACY(nn.Module):
     def __init__(self, init_params):
         # Set defaults
         defaults = dict(
@@ -30,7 +30,7 @@ class KDV(nn.Module):
         params = {**defaults, **init_params}
         self.init_params = params.copy()
 
-        super(KDV, self).__init__() # call constructor of parent class
+        super(KDV_LEGACY, self).__init__() # call constructor of parent class
         
         self.num_solitons = params['num_solitons'] 
         self.verbose = params['verbose'] 

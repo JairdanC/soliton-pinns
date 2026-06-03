@@ -20,7 +20,7 @@ from .methods import n_soliton, linear_combination
 from .tester import setup_testing_domain, test
 from .types import *
 
-class KDV_LEGACY(nn.Module):
+class KDV(nn.Module):
     def __init__(self, init_params
                  ) -> None:
         """
@@ -41,7 +41,7 @@ class KDV_LEGACY(nn.Module):
         # Merge user params with defaults for the characteristic parameters of the neural network
         self.char_params = {**defaults, **init_params}
 
-        super(KDV_LEGACY, self).__init__() #calls the constructor of the parent class (PyTorch function)
+        super(KDV, self).__init__() #calls the constructor of the parent class (PyTorch function)
 
         #Enforce deterministic seeding
         if self.char_params['seed'] is not None:
@@ -113,10 +113,10 @@ class KDV_LEGACY(nn.Module):
         tuple of the training statistics and the domain over which it was trained.
         """
 
-        super(KDV_LEGACY, self).train(True)
+        super(KDV, self).train(True)
         self.adam_epochs = train_params['adam_epochs'] #stashed for use in plotting
         training_stats, domain = trainer.train(self.neural_net, self.soliton_params, train_params, train_weights, self.device)
-        super(KDV_LEGACY, self).train(False)
+        super(KDV, self).train(False)
         return training_stats, domain
     
         

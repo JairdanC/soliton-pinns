@@ -5,6 +5,7 @@ used across training a PINN on the KdV equation for computing error and initial 
 
 import torch
 
+@torch.compile(fullgraph=True)
 def n_soliton(x: torch.Tensor, 
               t: torch.Tensor, 
               k_vec: torch.Tensor,
@@ -107,7 +108,7 @@ def n_soliton(x: torch.Tensor,
     else:
         raise ValueError("n_soliton implemented only for N = 1, 2 or 3 solitons")
 
-        
+@torch.compile(fullgraph=True)
 def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
     """
     Compute the phase shifts for the linear combination of single-soliton solutions.

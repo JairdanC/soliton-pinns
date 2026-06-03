@@ -1,7 +1,7 @@
 """
 KdV PINN Solver Module
 """
-from .kdv import KDV_LEGACY
+from .kdv import KDV
 from .types import (
     TrainingDomain,
     TestingDomain,
@@ -11,7 +11,7 @@ from .types import (
 )
 
 __all__ = [
-    "KDV_LEGACY",
+    "KDV",
     "TrainingDomain",
     "TestingDomain",
     "Solutions",
