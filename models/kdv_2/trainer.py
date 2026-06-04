@@ -12,7 +12,7 @@ from .types import TrainingDomain, TrainingStats
 from .loss import *
 from ..utils import *
 from ..network import *
-from .methods import linear_combination, energy_integral
+from .methods import n_soliton, energy_integral
 
 
 
@@ -43,7 +43,7 @@ def setup_training_domain(n_collocation: int,
     #ic points
     x_initial = torch.linspace(x0, x1, n_initial, device=device).reshape(-1, 1)
     t_initial = torch.ones_like(x_initial, device=device) * t0
-    u_initial = linear_combination(x_initial, t_initial, soliton_params['k_vec'], soliton_params['phi_vec'])
+    u_initial = n_soliton(x_initial, t_initial, soliton_params['k_vec'], soliton_params['phi_vec'])
 
     #bc points
     t_boundary_left = torch.linspace(t0, t1, n_boundary//2, device=device).reshape(-1, 1)

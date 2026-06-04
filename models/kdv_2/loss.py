@@ -64,9 +64,15 @@ def compute_energy_int_residual(neural_net: MLP,
                                 x_energy: torch.Tensor,
                                 t_energy: torch.Tensor
                                 ) -> torch.Tensor:
-    
-    x_grid, t_grid = torch.meshgrid(x_energy, t_energy, indexing='ij')
-    u_pred = neural_net(x_grid, t_grid)
+
+    x_flat = x_energy.flatten()
+    t_flat = t_energy.flatten()
+    x_grid, t_grid = torch.meshgrid(x_flat, t_flat, indexing='ij')
+    x_net = x_grid.reshape(-1, 1)
+    t_net = t_grid.reshape(-1, 1)
+    u_pred_flat = neural_net(x_net, t_net)
+    u_pred = u_pred_flat.reshape(x_grid.shape)
+
     energy_pred = energy_integral(u_pred, x_energy)
 
     residual = energy_pred - u_energy
@@ -143,7 +149,10 @@ def loss_components(neural_net: MLP,
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
     pde = torch.mean(compute_pde_residual(neural_net, domain.x_coll, domain.t_coll)**2)
-    energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_energy, domain.t_energy)**2)
+    if domain.t_energy is not None and domain.t_energy.numel() > 0: 
+        energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_energy, domain.t_energy)**2)
+    else:
+        energy = torch.zeros_like(ic)
 
     components = torch.stack([ic, bc, pde, energy])
     return components

@@ -159,7 +159,7 @@ def linear_combination(x: torch.Tensor,
         
     return u
 
-@torch.compile(fullgraph=True, mode='reduce-overhead')
+@torch.compile(fullgraph=True)
 def energy_integral(u: torch.Tensor, 
                     x: torch.Tensor
                     ) -> torch.Tensor:

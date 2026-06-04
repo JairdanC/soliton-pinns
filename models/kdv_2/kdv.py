@@ -189,7 +189,7 @@ class KDV(nn.Module):
     
     #Wrapper call
     def plot_losses(self, training_stats: TrainingStats,
-                    components: list[str] = ['total', 'pde', 'boundary', 'initial'], 
+                    components: list[str] = ['total', 'pde', 'boundary', 'initial', 'energy'], 
                     ) -> Figure:
         """
         Plot the losses given in the training stats returned from a training run
