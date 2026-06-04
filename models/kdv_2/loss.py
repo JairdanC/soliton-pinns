@@ -9,7 +9,7 @@ import torch.nn as nn
 from .types import TrainingDomain
 from ..network import MLP
 #Methods
-from .methods import energy_integral
+from .methods import momentum_integral, energy_integral
 
 def compute_pde_residual(neural_net: MLP, 
                      x: torch.Tensor, 
@@ -55,6 +55,26 @@ def compute_pde_residual(neural_net: MLP,
 
     # KdV equation residual
     residual = u_t + 6.0 * u * u_x + u_xxx
+
+    return residual
+
+def compute_momentum_int_residual(neural_net: MLP,
+                                  u_momentum: torch.Tensor,
+                                  x_momentum: torch.Tensor,
+                                  t_momentum: torch.Tensor
+                                  ) -> torch.Tensor:
+    
+    x_flat = x_momentum.flatten()
+    t_flat = t_momentum.flatten()
+    x_grid, t_grid = torch.meshgrid(x_flat, t_flat, indexing='ij')
+    x_net = x_grid.reshape(-1, 1)
+    t_net = t_grid.reshape(-1, 1)
+    u_pred_flat = neural_net(x_net, t_net)
+    u_pred = u_pred_flat.reshape(x_grid.shape)
+
+    momentum_pred = momentum_integral(u_pred, x_momentum)
+
+    residual = momentum_pred - u_momentum
 
     return residual
 
@@ -116,6 +136,7 @@ def init_loss_list() -> dict[str, list[float]]:
         'initial': [],
         'boundary': [],
         'pde': [],
+        'momentum': [],
         'energy': []
     }
     return losses
@@ -131,7 +152,9 @@ def init_loss_weights(device,
         'w_ic': 1.0,
         'w_bc': 1.0,
         'w_pde': 1.0,
-        'w_energy': 1.0
+        'w_momentum': 1.0,
+        'w_energy': 1.0,
+        
     }
     if init_weights is not None:
         dict_weights = defaults | init_weights #overwrites any existing key with the user defined value
@@ -149,12 +172,19 @@ def loss_components(neural_net: MLP,
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
     pde = torch.mean(compute_pde_residual(neural_net, domain.x_coll, domain.t_coll)**2)
+
+    if domain.t_momentum is not None and domain.t_momentum.numel() > 0: 
+        momentum = torch.mean(compute_momentum_int_residual(neural_net, domain.u_momentum, domain.x_ic, domain.t_momentum)**2)
+    else:
+        momentum = torch.zeros_like(ic)
     if domain.t_energy is not None and domain.t_energy.numel() > 0: 
-        energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_energy, domain.t_energy)**2)
+        energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_ic, domain.t_energy)**2)
     else:
         energy = torch.zeros_like(ic)
 
-    components = torch.stack([ic, bc, pde, energy])
+    
+
+    components = torch.stack([ic, bc, pde, momentum, energy])
     return components
     
 
@@ -171,7 +201,8 @@ def update_loss_list(losses: dict[str, list[float]],
     losses['initial'].append(float(loss_comps[0]))
     losses['boundary'].append(float(loss_comps[1]))
     losses['pde'].append(float(loss_comps[2]))
-    losses['energy'].append(float(loss_comps[3]))
+    losses['momentum'].append(float(loss_comps[3]))
+    losses['energy'].append(float(loss_comps[4]))
 
 def update_last_vals(last_vals: dict[str, float], 
                      total_loss: torch.Tensor, 
@@ -185,7 +216,8 @@ def update_last_vals(last_vals: dict[str, float],
     last_vals['initial'] = float(loss_comps[0])
     last_vals['boundary'] = float(loss_comps[1])
     last_vals['pde'] = float(loss_comps[2])
-    last_vals['energy'] = float(loss_comps[3])
+    last_vals['momentum'] = float(loss_comps[3])
+    last_vals['energy'] = float(loss_comps[4])
 
 def append_last_vals(losses: dict[str, list[float]],
                      last_vals: dict[str, float]
@@ -198,4 +230,5 @@ def append_last_vals(losses: dict[str, list[float]],
     losses['initial'].append(last_vals['initial'])
     losses['boundary'].append(last_vals['boundary'])
     losses['pde'].append(last_vals['pde'])
+    losses['momentum'].append(last_vals['momentum'])
     losses['energy'].append(last_vals['energy'])

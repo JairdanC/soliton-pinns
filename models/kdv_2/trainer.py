@@ -12,13 +12,14 @@ from .types import TrainingDomain, TrainingStats
 from .loss import *
 from ..utils import *
 from ..network import *
-from .methods import n_soliton, energy_integral
+from .methods import n_soliton, energy_integral, momentum_integral
 
 
 
 def setup_training_domain(n_collocation: int,
                           n_initial: int,
                           n_boundary: int,
+                          n_momentum: int,
                           n_energy: int,
                           soliton_params: dict[str, torch.Tensor]
                           ) -> TrainingDomain:
@@ -54,10 +55,11 @@ def setup_training_domain(n_collocation: int,
     t_boundary = torch.cat([t_boundary_left, t_boundary_right], dim=0)
     u_boundary = torch.zeros_like(x_boundary, device=device)
 
-    #energy points
-    x_energy = x_initial.clone().detach()
-    t_energy = torch.linspace(t0, t1, n_energy, device=device).reshape(-1, 1)
-    u_energy = energy_integral(u_initial, x_energy)
+    #conservation points
+    t_momentum = torch.rand(n_momentum, 1, device=device) * (t1 - t0) + t0
+    u_momentum = momentum_integral(u_initial, x_initial)
+    t_energy = torch.rand(n_energy, 1, device=device) * (t1 - t0) + t0
+    u_energy = energy_integral(u_initial, x_initial)
 
     domain = TrainingDomain(
         x_collocation,
@@ -68,9 +70,11 @@ def setup_training_domain(n_collocation: int,
         x_boundary,
         t_boundary,
         u_boundary,
-        x_energy,
+        t_momentum,
+        u_momentum,
         t_energy,
-        u_energy)
+        u_energy
+    )
 
     return domain
 
@@ -133,6 +137,7 @@ def train(neural_net: MLP,
         'n_collocation': 30000,
         'n_initial': 30000,
         'n_boundary': 30000,
+        'n_momentum': 100,
         'n_energy': 30,
         'adam_lr': 0.001,
         'lbfgs_lr': 1.0,
@@ -153,6 +158,7 @@ def train(neural_net: MLP,
         params['n_collocation'],
         params['n_initial'],
         params['n_boundary'],
+        params['n_momentum'],
         params['n_energy'],
         soliton_params
     )

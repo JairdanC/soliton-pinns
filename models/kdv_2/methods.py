@@ -167,3 +167,10 @@ def energy_integral(u: torch.Tensor,
     u_squared = u**2
     energies = torch.trapz(u_squared, x, dim=0)
     return energies
+
+@torch.compile(fullgraph=True)
+def momentum_integral(u: torch.Tensor,
+                      x: torch.Tensor,
+                      ) -> torch.Tensor:
+    
+    return torch.trapz(u, x, dim=0)
