@@ -1,0 +1,15 @@
+#Model data
+**/losses/**
+**/errors/**
+*.npz
+
+#Jupyter notebook local data
+**/.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+#Python
+**/__pycache__
+*.pyc
+
+#Scrap Jupyter
+notebooks/scrap.ipynb

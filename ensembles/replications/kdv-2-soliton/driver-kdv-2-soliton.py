@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 import random
 
-from models.kdv import KDV
+from models.kdv import KDV_LEGACY
 
 # configuration
 INIT_PARAMS = dict(
@@ -88,7 +88,7 @@ for run, seed in pending:
     # create model
     init_params = INIT_PARAMS.copy()
     init_params["seed"] = seed
-    model = KDV(init_params)
+    model = KDV_LEGACY(init_params)
     
     # train and test
     model.train(TRAIN_PARAMS)

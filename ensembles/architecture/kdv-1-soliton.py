@@ -23,7 +23,7 @@ import time
 import torch
 import torch.nn as nn
 
-from models.kdv import KDV
+from models.kdv import KDV_LEGACY
 
 # architecture grid to sweep
 N_HIDDEN_LAYERS_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -113,7 +113,7 @@ for idx, (n_layers, n_neurons, seed) in enumerate(pending, 1):
             seed=seed,
             verbose=False,
         )
-        model = KDV(init_params)
+        model = KDV_LEGACY(init_params)
         
         # train and test
         model.train(TRAIN_PARAMS)
