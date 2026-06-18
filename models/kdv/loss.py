@@ -5,11 +5,38 @@ for the KdV equation
 #Libraries
 import torch
 import torch.nn as nn
+import torch.func as func
 #Types
 from .types import TrainingDomain
 from ..network import MLP
 #Methods
 from .methods import momentum_integral, energy_integral
+
+def func_compute_pde_residual(neural_net: MLP,
+                              x: torch.Tensor,
+                              t: torch.Tensor,
+                              ) -> torch.Tensor:
+    """
+    A functional implementation the compute_pde_residual function, testing to see if a functional compiled version has
+    significant improvements on preformance
+    """
+    params = dict(neural_net.named_parameters())
+
+    def u_fn(params, x, t) -> torch.Tensor:
+        #stateless/functional call through the current state of the model
+        u = func.functional_call(neural_net, params, args=(x, t))
+        return u.squeeze()
+    
+    u_x_fn = func.jacrev(u_fn, argnums=1) #reverse AD, returns new func
+    u_t_fn = func.jacrev(u_fn, argnums=2) #reverse AD, returns new func
+    u_xxx_fn = func.jacrev(func.jacfwd(u_x_fn, argnums=1), argnums=1) #chains reverse -> forward (clears tape) -> reverse AD, returns new func
+
+    def kdv_fn(params, x, t): 
+        #residual function
+        residual = u_t_fn(params, x, t) + 6 * u_fn(params, x, t) * u_x_fn(params, x, t) + u_xxx_fn(params, x, t)
+        return residual.squeeze()
+
+    return func.vmap(kdv_fn, in_dims=(None, 0, 0))(params, x, t) #vectorize
 
 def compute_pde_residual(neural_net: MLP, 
                      x: torch.Tensor, 
