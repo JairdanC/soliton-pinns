@@ -198,7 +198,7 @@ def loss_components(neural_net: MLP,
 
     ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
     bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
-    pde = torch.mean(compute_pde_residual(neural_net, domain.x_coll, domain.t_coll)**2)
+    pde = torch.mean(func_compute_pde_residual(neural_net, domain.x_coll, domain.t_coll)**2)
 
     if domain.t_momentum is not None and domain.t_momentum.numel() > 0: 
         momentum = torch.mean(compute_momentum_int_residual(neural_net, domain.u_momentum, domain.x_ic, domain.t_momentum)**2)
