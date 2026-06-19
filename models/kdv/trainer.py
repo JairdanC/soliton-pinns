@@ -152,7 +152,7 @@ def train(neural_net: MLP,
     loss_weights = init_loss_weights(device, train_weights) #returns a torch tensor for compute
 
     #start wall-clock timer
-    start_time = time.time() #export this function to utils later
+    
 
     domain = setup_training_domain(
         params['n_collocation'],
@@ -163,9 +163,14 @@ def train(neural_net: MLP,
         soliton_params
     )
 
+    neural_net = torch.compile(neural_net)
+    
     if params['verbose']:
-        loss_comps = loss_components(neural_net, domain)
+        m_params = neural_net.named_parameters()
+        loss_comps = loss_components(neural_net, m_params, domain)
         print_weighted_loss_components(loss_weights, loss_comps, tag='start') 
+
+    start_time = time.time() #export this function to utils later
 
     #Adam Optimizer
     if params['verbose']: print('Starting Adam optimization...')
@@ -173,14 +178,12 @@ def train(neural_net: MLP,
     if torch.cuda.is_available(): torch.cuda.reset_peak_memory_stats(device)
     if params['verbose']: log_gpu_memory("train start")
 
-    neural_net = torch.compile(neural_net)
-
     for epoch in range(params['adam_epochs']):
 
         optimizer.zero_grad(set_to_none=True)
 
-        params = neural_net.named_parameters()
-        loss_comps = loss_components(neural_net, params, domain)
+        m_params = neural_net.named_parameters()
+        loss_comps = loss_components(neural_net, m_params, domain)
         total_loss = torch.dot(loss_weights, loss_comps)
         total_loss.backward()
         optimizer.step()
@@ -219,8 +222,8 @@ def train(neural_net: MLP,
         def closure():
             optimizer.zero_grad(set_to_none=True)
 
-            params = neural_net.named_parameters
-            loss_comps = loss_components(neural_net, params, domain)
+            m_params = neural_net.named_parameters
+            loss_comps = loss_components(neural_net, m_params, domain)
             total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
 
@@ -251,8 +254,8 @@ def train(neural_net: MLP,
 
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            params = neural_net.named_parameters()
-            loss_comps = loss_components(neural_net, params, domain)
+            m_params = neural_net.named_parameters()
+            loss_comps = loss_components(neural_net, m_params, domain)
             total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
             return total_loss
@@ -261,13 +264,15 @@ def train(neural_net: MLP,
             optimizer.step(closure)
 
             if params['logging']:
-                loss_comps = loss_components(neural_net, domain)
+                m_params = neural_net.named_parameters()
+                loss_comps = loss_components(neural_net, m_params, domain)
                 total_loss = torch.dot(loss_weights, loss_comps)
                 update_loss_list(losses, total_loss, loss_comps)
             
             if params['verbose'] and (i % params['verbose_step'] == 0 or i == params['lbfgs_epochs'] - 1):
                     if not params['logging']:
-                        loss_comps = loss_components(neural_net, domain)
+                        m_params = neural_net.named_parameters()
+                        loss_comps = loss_components(neural_net, m_params, domain)
                         total_loss = torch.dot(loss_weights, loss_comps)
                     print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {total_loss.item():.6e}")
 
@@ -279,6 +284,7 @@ def train(neural_net: MLP,
     if params['verbose']: print(f"Training completed in {training_stats.time:.2f} s")
     
     if params['verbose']: 
+        m_params = neural_net.named_parameters()
         loss_comps = loss_components(neural_net, domain)
         print_weighted_loss_components(loss_weights, loss_comps, tag='end')
 
