@@ -24,6 +24,9 @@ def func_compute_pde_residual(neural_net: MLP,
 
     def u_fn(params, x, t) -> torch.Tensor:
         #stateless/functional call through the current state of the model
+        x = x.reshape(1,1) 
+        t = t.reshape(1,1)
+        
         u = func.functional_call(neural_net, params, args=(x, t))
         return u.squeeze()
     
