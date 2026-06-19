@@ -3,7 +3,6 @@ This file contains the functions used in training the given neural network inclu
 """
 
 import torch
-import torch.nn as nn
 import time
 import typing
 
@@ -166,7 +165,7 @@ def train(neural_net: MLP,
     neural_net = torch.compile(neural_net)
     
     if params['verbose']:
-        m_params = neural_net.named_parameters()
+        m_params = dict(neural_net.named_parameters())
         loss_comps = loss_components(neural_net, m_params, domain)
         print_weighted_loss_components(loss_weights, loss_comps, tag='start') 
 
@@ -182,7 +181,7 @@ def train(neural_net: MLP,
 
         optimizer.zero_grad(set_to_none=True)
 
-        m_params = neural_net.named_parameters()
+        m_params = dict(neural_net.named_parameters())
         loss_comps = loss_components(neural_net, m_params, domain)
         total_loss = torch.dot(loss_weights, loss_comps)
         total_loss.backward()
@@ -222,7 +221,7 @@ def train(neural_net: MLP,
         def closure():
             optimizer.zero_grad(set_to_none=True)
 
-            m_params = neural_net.named_parameters
+            m_params = dict(neural_net.named_parameters())
             loss_comps = loss_components(neural_net, m_params, domain)
             total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
@@ -254,7 +253,7 @@ def train(neural_net: MLP,
 
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            m_params = neural_net.named_parameters()
+            m_params = dict(neural_net.named_parameters())
             loss_comps = loss_components(neural_net, m_params, domain)
             total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
@@ -264,14 +263,14 @@ def train(neural_net: MLP,
             optimizer.step(closure)
 
             if params['logging']:
-                m_params = neural_net.named_parameters()
+                m_params = dict(neural_net.named_parameters())
                 loss_comps = loss_components(neural_net, m_params, domain)
                 total_loss = torch.dot(loss_weights, loss_comps)
                 update_loss_list(losses, total_loss, loss_comps)
             
             if params['verbose'] and (i % params['verbose_step'] == 0 or i == params['lbfgs_epochs'] - 1):
                     if not params['logging']:
-                        m_params = neural_net.named_parameters()
+                        m_params = dict(neural_net.named_parameters())
                         loss_comps = loss_components(neural_net, m_params, domain)
                         total_loss = torch.dot(loss_weights, loss_comps)
                     print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {total_loss.item():.6e}")
@@ -284,8 +283,8 @@ def train(neural_net: MLP,
     if params['verbose']: print(f"Training completed in {training_stats.time:.2f} s")
     
     if params['verbose']: 
-        m_params = neural_net.named_parameters()
-        loss_comps = loss_components(neural_net, domain)
+        m_params = dict(neural_net.named_parameters())
+        loss_comps = loss_components(neural_net, m_params, domain)
         print_weighted_loss_components(loss_weights, loss_comps, tag='end')
 
     return training_stats, domain
