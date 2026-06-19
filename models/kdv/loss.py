@@ -13,6 +13,7 @@ from ..network import MLP
 from .methods import momentum_integral, energy_integral
 
 def func_compute_pde_residual(neural_net: MLP,
+                              params: dict[str, torch.Tensor],
                               x: torch.Tensor,
                               t: torch.Tensor,
                               ) -> torch.Tensor:
@@ -20,7 +21,6 @@ def func_compute_pde_residual(neural_net: MLP,
     A functional implementation the compute_pde_residual function, testing to see if a functional compiled version has
     significant improvements on preformance
     """
-    params = dict(neural_net.named_parameters())
 
     def u_fn(params, x, t) -> torch.Tensor:
         #stateless/functional call through the current state of the model
@@ -41,13 +41,14 @@ def func_compute_pde_residual(neural_net: MLP,
 
     return func.vmap(kdv_fn, in_dims=(None, 0, 0))(params, x, t) #vectorize
 
+"""
 def compute_pde_residual(neural_net: MLP, 
                      x: torch.Tensor, 
                      t: torch.Tensor
                      ) -> torch.Tensor:
-    """
-    Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
-    """
+    
+    #Compute PDE residual for the KdV equation: u_t + 6u*u_x + u_xxx = 0
+    
 
     # copies of x and t that require gradients
     x = x.clone().detach().requires_grad_(True)
@@ -87,6 +88,8 @@ def compute_pde_residual(neural_net: MLP,
     residual = u_t + 6.0 * u * u_x + u_xxx
 
     return residual
+"""
+    
 
 def compute_momentum_int_residual(neural_net: MLP,
                                   u_momentum: torch.Tensor,
@@ -131,6 +134,7 @@ def compute_energy_int_residual(neural_net: MLP,
     
 
 def compute_initial_loss(neural_net: MLP, 
+                         params: dict[str, torch.Tensor],
                          u_ic: torch.Tensor, 
                          x_ic: torch.Tensor, 
                          t_ic: torch.Tensor
@@ -139,11 +143,12 @@ def compute_initial_loss(neural_net: MLP,
     Compute the initial loss for the KdV equation. (ICs)
     """
 
-    u_pred_initial = neural_net(x_ic, t_ic)
+    u_pred_initial = func.functional_call(neural_net, params, args=(x_ic, t_ic))
     initial_loss = torch.mean((u_pred_initial - u_ic)**2)
     return initial_loss
 
 def compute_boundary_loss(neural_net: MLP, 
+                          params: dict[str, torch.Tensor],
                           u_bc: torch.Tensor, 
                           x_bc: torch.Tensor, 
                           t_bc: torch.Tensor
@@ -152,7 +157,7 @@ def compute_boundary_loss(neural_net: MLP,
     Compute the boundary loss for the KdV equation. (BCs)
     """
 
-    u_pred_boundary = neural_net(x_bc, t_bc)
+    u_pred_boundary = func.functional_call(neural_net, params, args=(x_bc, t_bc))
     boundary_loss = torch.mean((u_pred_boundary - u_bc)**2)
     return boundary_loss
 
@@ -192,16 +197,17 @@ def init_loss_weights(device,
         return weights
     else: return torch.tensor(list(defaults.values()), device=device)
 
+@torch.compile()
 def loss_components(neural_net: MLP,
+                    params: dict[str, torch.Tensor],
                     domain: TrainingDomain
                     ) -> torch.Tensor:
     """
     Calculates the loss per-component and returns it as a stacked torch tensor  
     """
-
-    ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
-    bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
-    pde = torch.mean(func_compute_pde_residual(neural_net, domain.x_coll, domain.t_coll)**2)
+    ic = compute_initial_loss(neural_net, params, domain.u_ic, domain.x_ic, domain.t_ic)
+    bc = compute_boundary_loss(neural_net, params, domain.u_bc, domain.x_bc, domain.t_bc)
+    pde = torch.mean(func_compute_pde_residual(neural_net, params, domain.x_coll, domain.t_coll)**2)
 
     if domain.t_momentum is not None and domain.t_momentum.numel() > 0: 
         momentum = torch.mean(compute_momentum_int_residual(neural_net, domain.u_momentum, domain.x_ic, domain.t_momentum)**2)
@@ -211,8 +217,6 @@ def loss_components(neural_net: MLP,
         energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_ic, domain.t_energy)**2)
     else:
         energy = torch.zeros_like(ic)
-
-    
 
     components = torch.stack([ic, bc, pde, momentum, energy])
     return components

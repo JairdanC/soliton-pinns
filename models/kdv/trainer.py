@@ -104,7 +104,7 @@ def adaptive_sampling(domain: TrainingDomain,
     for i in range (0, n_points, B):
         x_batch = x_flat[i:i+B]
         t_batch = t_flat[i:i+B]
-        res_batch = torch.abs(compute_pde_residual(neural_net, x_batch, t_batch)).detach()
+        res_batch = torch.abs(func_compute_pde_residual(neural_net, x_batch, t_batch)).detach()
         residuals_list.append(res_batch)
 
     residuals = torch.cat(residuals_list, dim=0).flatten()
@@ -173,9 +173,14 @@ def train(neural_net: MLP,
     if torch.cuda.is_available(): torch.cuda.reset_peak_memory_stats(device)
     if params['verbose']: log_gpu_memory("train start")
 
+    neural_net = torch.compile(neural_net)
+
     for epoch in range(params['adam_epochs']):
+
         optimizer.zero_grad(set_to_none=True)
-        loss_comps = loss_components(neural_net, domain)
+
+        params = neural_net.named_parameters()
+        loss_comps = loss_components(neural_net, params, domain)
         total_loss = torch.dot(loss_weights, loss_comps)
         total_loss.backward()
         optimizer.step()
@@ -213,7 +218,9 @@ def train(neural_net: MLP,
         
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components(neural_net, domain)
+
+            params = neural_net.named_parameters
+            loss_comps = loss_components(neural_net, params, domain)
             total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
 
@@ -244,7 +251,8 @@ def train(neural_net: MLP,
 
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components(neural_net, domain)
+            params = neural_net.named_parameters()
+            loss_comps = loss_components(neural_net, params, domain)
             total_loss = torch.dot(loss_weights, loss_comps)
             total_loss.backward()
             return total_loss
