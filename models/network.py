@@ -86,8 +86,8 @@ class SIREN(nn.Module):
         layer_list.append(nn.Linear(n_neurons_per_layer, output)) #hidden layer size --> (u) is default
         if nl_outer: layer_list.append(self.SINE(omega)) #adds a nonlinear layer at the end, used in the paper, maybe needed
 
-        self.initialize_weights(layer_list)
         self.model = nn.Sequential(*layer_list) #combine into a layer model
+        self.initialize_weights()
         self.initialize_weights()
     
     def initialize_weights(self):
@@ -95,17 +95,16 @@ class SIREN(nn.Module):
         for layer in self.model:
             if isinstance(layer, nn.Linear):
 
-                num_inputs = layer.weights.size(-1)
+                num_inputs = layer.weight.size(-1)
 
                 if index == 0: 
-                    layer.weight.uniform_(-1/num_inputs, 1,num_inputs)
+                    layer.weight.uniform_(-1/num_inputs, 1/num_inputs)
                 else: 
                     bound = sqrt(6 / num_inputs) / self.omega
                     layer.weight.uniform_(-bound, bound)
 
                 index += 1
         
-
     def forward(self, x, t) -> torch.Tensor:
         inputs = torch.cat([x, t], dim=1) #combine into a single layer tensor
         return self.model(inputs)

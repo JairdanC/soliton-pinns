@@ -15,7 +15,7 @@ from matplotlib.figure import Figure
 from . import trainer
 from . import visualizer
 #Methods
-from ..network import MLP
+from ..network import MLP, SIREN
 from .methods import n_soliton, linear_combination
 from .tester import setup_testing_domain, test
 from .types import *
@@ -59,7 +59,7 @@ class KDV(nn.Module):
         if self.char_params['verbose']:
             print(f"Using device: {self.device}")
 
-        self.neural_net = MLP(self.char_params['n_hidden_layers'], self.char_params['n_neurons_per_layer'], self.char_params['activation'], self.char_params['use_layernorm'], input=2, output=1)
+        self.neural_net = SIREN(self.char_params['n_hidden_layers'], self.char_params['n_neurons_per_layer'], input=2, output=1, nl_outer=self.char_params['nl_outer'], omega=self.char_params['omega'])
         self.neural_net.to(self.device)
 
         match self.char_params['num_solitons']:

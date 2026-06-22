@@ -11,7 +11,7 @@ from ..network import MLP
 #Methods
 from .methods import momentum_integral, energy_integral
 
-def compute_pde_residual(neural_net: MLP, 
+def compute_pde_residual(neural_net: nn.Module, 
                      x: torch.Tensor, 
                      t: torch.Tensor
                      ) -> torch.Tensor:
@@ -58,7 +58,7 @@ def compute_pde_residual(neural_net: MLP,
 
     return residual
 
-def compute_momentum_int_residual(neural_net: MLP,
+def compute_momentum_int_residual(neural_net: nn.Module,
                                   u_momentum: torch.Tensor,
                                   x_momentum: torch.Tensor,
                                   t_momentum: torch.Tensor
@@ -79,7 +79,7 @@ def compute_momentum_int_residual(neural_net: MLP,
     return residual
 
 
-def compute_energy_int_residual(neural_net: MLP,
+def compute_energy_int_residual(neural_net: nn.Module,
                                 u_energy: torch.Tensor,
                                 x_energy: torch.Tensor,
                                 t_energy: torch.Tensor
@@ -100,7 +100,7 @@ def compute_energy_int_residual(neural_net: MLP,
     return residual
     
 
-def compute_initial_loss(neural_net: MLP, 
+def compute_initial_loss(neural_net: nn.Module, 
                          u_ic: torch.Tensor, 
                          x_ic: torch.Tensor, 
                          t_ic: torch.Tensor
@@ -113,7 +113,7 @@ def compute_initial_loss(neural_net: MLP,
     initial_loss = torch.mean((u_pred_initial - u_ic)**2)
     return initial_loss
 
-def compute_boundary_loss(neural_net: MLP, 
+def compute_boundary_loss(neural_net: nn.Module, 
                           u_bc: torch.Tensor, 
                           x_bc: torch.Tensor, 
                           t_bc: torch.Tensor
@@ -162,7 +162,7 @@ def init_loss_weights(device,
         return weights
     else: return torch.tensor(list(defaults.values()), device=device)
 
-def loss_components(neural_net: MLP,
+def loss_components(neural_net: nn.Module,
                     domain: TrainingDomain
                     ) -> torch.Tensor:
     """

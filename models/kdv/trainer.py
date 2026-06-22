@@ -79,7 +79,7 @@ def setup_training_domain(n_collocation: int,
     return domain
 
 def adaptive_sampling(domain: TrainingDomain,
-                      neural_net: MLP,
+                      neural_net: nn.Module,
                       x_lims: torch.Tensor,
                       t_lims: torch.Tensor,
                       n_new: int
@@ -118,7 +118,7 @@ def adaptive_sampling(domain: TrainingDomain,
 
 
 
-def train(neural_net: MLP,
+def train(neural_net: nn.Module,
           soliton_params: dict[str, torch.Tensor], 
           train_params: dict[str, typing.Any],
           train_weights: dict[str, float], 
