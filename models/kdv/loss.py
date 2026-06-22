@@ -12,6 +12,7 @@ from ..network import MLP
 #Methods
 from .methods import momentum_integral, energy_integral
 
+@torch.compiler.disable
 def func_compute_pde_residual(neural_net: MLP,
                               params: dict[str, torch.Tensor],
                               x: torch.Tensor,

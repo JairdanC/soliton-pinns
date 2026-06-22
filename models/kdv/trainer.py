@@ -162,11 +162,11 @@ def train(neural_net: MLP,
         soliton_params
     )
 
-    neural_net = torch.compile(neural_net)
+    neural_net_comp = neural_net
     
     if params['verbose']:
         m_params = dict(neural_net.named_parameters())
-        loss_comps = loss_components(neural_net, m_params, domain)
+        loss_comps = loss_components(neural_net_comp, m_params, domain)
         print_weighted_loss_components(loss_weights, loss_comps, tag='start') 
 
     start_time = time.time() #export this function to utils later
