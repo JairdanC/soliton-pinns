@@ -59,9 +59,6 @@ class KDV(nn.Module):
         if self.char_params['verbose']:
             print(f"Using device: {self.device}")
 
-        self.neural_net = SIREN(self.char_params['n_hidden_layers'], self.char_params['n_neurons_per_layer'], input=2, output=1, nl_outer=self.char_params['nl_outer'], omega=self.char_params['omega'])
-        self.neural_net.to(self.device)
-
         match self.char_params['num_solitons']:
             case 1:
                 x_lims = torch.tensor([-30, 30], device=self.device)
@@ -92,15 +89,20 @@ class KDV(nn.Module):
                 phi_vector = torch.tensor([phi1, phi2, phi3], device=self.device)
             case _:
                 raise ValueError("n_soliton only implemented for N = 1, 2, 3 solitons") 
-            
+        
         self.soliton_params = {
                 'x_lims': x_lims,
                 't_lims': t_lims,
                 'k_vec': k_vector,
                 'phi_vec': phi_vector
             }
-            
-        #here is where testing domain is called in the original code seems too early
+        
+        self.neural_net = SIREN(self.char_params['n_hidden_layers'], self.char_params['n_neurons_per_layer'], 
+                                input=2, output=1, nl_outer=self.char_params['nl_outer'], omega=self.char_params['omega'],
+                                x_bounds=self.soliton_params['x_lims'], t_bounds=self.soliton_params['t_lims'])
+        self.neural_net.to(self.device)
+        
+        
         return
     
 

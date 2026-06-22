@@ -64,7 +64,9 @@ class SIREN(nn.Module):
                  input=2, 
                  output=1,
                  nl_outer=False,
-                 omega=30
+                 omega=30,
+                 x_bounds: tuple[float, float] = [-30, 30],
+                 t_bounds: tuple[float, float] = [-15, 15]
                  ) -> None:
         """
         Initialization for a multilayer perceptron using a sequence of nn.Linear and sine activation functions, described as a SIREN network,
@@ -74,6 +76,10 @@ class SIREN(nn.Module):
         super(SIREN, self).__init__()
         
         self.omega = omega #reference
+        self.x_min = x_bounds[0]
+        self.x_max = x_bounds[1]
+        self.t_min = t_bounds[0]
+        self.t_max = t_bounds[1]
 
         #Build network
         layer_list = [nn.Linear(input, n_neurons_per_layer)] #(x,t) is default --> hidden layer size
@@ -107,6 +113,9 @@ class SIREN(nn.Module):
                     index += 1
         
     def forward(self, x, t) -> torch.Tensor:
+
+        x_norm = 2.0 * (x - self.x_min) / (self.x_max - self.x_min) - 1.0
+        t_norm = 2.0 * (t - self.t_min) / (self.t_max - self.t_min) - 1.0
         inputs = torch.cat([x, t], dim=1) #combine into a single layer tensor
         return self.model(inputs)
         
