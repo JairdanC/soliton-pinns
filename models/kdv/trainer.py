@@ -4,6 +4,7 @@ This file contains the functions used in training the given neural network inclu
 
 import torch
 import torch.nn as nn
+from torch.func import grad, vmap
 import time
 import typing
 
@@ -12,7 +13,7 @@ from .types import TrainingDomain, TrainingStats
 from .loss import *
 from ..utils import *
 from ..network import *
-from .methods import n_soliton, energy_integral, momentum_integral
+from .methods import n_soliton, scalar_n_soliton, energy_integral, momentum_integral, hamiltonian_integral
 
 
 
@@ -21,6 +22,7 @@ def setup_training_domain(n_collocation: int,
                           n_boundary: int,
                           n_momentum: int,
                           n_energy: int,
+                          n_hamiltonian: int,
                           soliton_params: dict[str, torch.Tensor]
                           ) -> TrainingDomain:
     """
@@ -35,6 +37,8 @@ def setup_training_domain(n_collocation: int,
     x1 = soliton_params['x_lims'][1]
     t0 = soliton_params['t_lims'][0]
     t1 = soliton_params['t_lims'][1]
+    k_vec = soliton_params['k_vec']
+    phi_vec = soliton_params['phi_vec']
 
 
     #collocation points
@@ -44,7 +48,10 @@ def setup_training_domain(n_collocation: int,
     #ic points
     x_initial = torch.linspace(x0, x1, n_initial, device=device).reshape(-1, 1)
     t_initial = torch.ones_like(x_initial, device=device) * t0
-    u_initial = n_soliton(x_initial, t_initial, soliton_params['k_vec'], soliton_params['phi_vec'])
+    u_initial = n_soliton(x_initial, t_initial, k_vec, phi_vec)
+    if (n_hamiltonian > 0):
+        u_initial_x = vmap(grad(scalar_n_soliton), in_dims=(0, 0, None, None))(x_initial, t_initial, k_vec, phi_vec)
+    else: u_initial_x = torch.zeros_like(u_initial)
 
     #bc points
     t_boundary_left = torch.linspace(t0, t1, n_boundary//2, device=device).reshape(-1, 1)
@@ -60,6 +67,8 @@ def setup_training_domain(n_collocation: int,
     u_momentum = momentum_integral(u_initial, x_initial)
     t_energy = torch.rand(n_energy, 1, device=device) * (t1 - t0) + t0
     u_energy = energy_integral(u_initial, x_initial)
+    t_hamilt = torch.rand(n_hamiltonian, 1, device=device) * (t1 - t0) + t0
+    u_hamilt = hamiltonian_integral(u_initial, u_initial_x, x_initial)
 
     domain = TrainingDomain(
         x_collocation,
@@ -73,7 +82,9 @@ def setup_training_domain(n_collocation: int,
         t_momentum,
         u_momentum,
         t_energy,
-        u_energy
+        u_energy,
+        t_hamilt,
+        u_hamilt
     )
 
     return domain
@@ -137,8 +148,9 @@ def train(neural_net: MLP,
         'n_collocation': 30000,
         'n_initial': 30000,
         'n_boundary': 30000,
-        'n_momentum': 100,
-        'n_energy': 30,
+        'n_momentum': 25,
+        'n_energy': 25,
+        'n_hamiltonian': 25,
         'adam_lr': 0.001,
         'lbfgs_lr': 1.0,
         'lbfgs_history_size': 100,
@@ -160,6 +172,7 @@ def train(neural_net: MLP,
         params['n_boundary'],
         params['n_momentum'],
         params['n_energy'],
+        params['n_hamiltonian'],
         soliton_params
     )
 

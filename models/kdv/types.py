@@ -15,6 +15,8 @@ class TrainingDomain():
     u_momentum: torch.Tensor
     t_energy: torch.Tensor
     u_energy: torch.Tensor
+    t_hamilt: torch.Tensor
+    u_hamilt: torch.Tensor
 
 @dataclass(frozen=True, slots=True)
 class TestingDomain():

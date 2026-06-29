@@ -9,7 +9,7 @@ import torch.nn as nn
 from .types import TrainingDomain
 from ..network import MLP
 #Methods
-from .methods import momentum_integral, energy_integral
+from .methods import momentum_integral, energy_integral, hamiltonian_integral
 
 def compute_pde_residual(neural_net: MLP, 
                      x: torch.Tensor, 
@@ -98,7 +98,35 @@ def compute_energy_int_residual(neural_net: MLP,
     residual = energy_pred - u_energy
 
     return residual
+
+def compute_hamiltonian_int_residual(neural_net: MLP,
+                                  u_hamilt: torch.Tensor,
+                                  x_hamilt: torch.Tensor,
+                                  t_hamilt: torch.Tensor
+                                  ) -> torch.Tensor:
     
+    x_flat = x_hamilt.clone().detach().flatten().requires_grad_(True)
+    t_flat = t_hamilt.clone().detach().flatten().requires_grad_(True)
+    x_grid, t_grid = torch.meshgrid(x_flat, t_flat, indexing='ij')
+    x_net = x_grid.reshape(-1, 1)
+    t_net = t_grid.reshape(-1, 1)
+    u_pred_flat = neural_net(x_net, t_net)
+    u_pred_flat_x = torch.autograd.grad(
+        outputs=u_pred_flat, 
+        inputs=x_net, 
+        grad_outputs=torch.ones_like(u_pred_flat),
+        create_graph=True
+    )[0]
+    u_pred = u_pred_flat.reshape(x_grid.shape)
+    u_pred_x = u_pred_flat_x.reshape(x_grid.shape)
+
+    hamilt_pred = hamiltonian_integral(u_pred, u_pred_x, x_hamilt)
+
+    residual = hamilt_pred - u_hamilt
+
+    return residual
+
+
 
 def compute_initial_loss(neural_net: MLP, 
                          u_ic: torch.Tensor, 
@@ -137,7 +165,8 @@ def init_loss_list() -> dict[str, list[float]]:
         'boundary': [],
         'pde': [],
         'momentum': [],
-        'energy': []
+        'energy': [],
+        'hamiltonian': []
     }
     return losses
 
@@ -154,7 +183,7 @@ def init_loss_weights(device,
         'w_pde': 1.0,
         'w_momentum': 1.0,
         'w_energy': 1.0,
-        
+        'w_hamiltonian': 1.0
     }
     if init_weights is not None:
         dict_weights = defaults | init_weights #overwrites any existing key with the user defined value
@@ -181,10 +210,13 @@ def loss_components(neural_net: MLP,
         energy = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_ic, domain.t_energy)**2)
     else:
         energy = torch.zeros_like(ic)
-
+    if domain.t_hamilt is not None and domain.t_hamilt.numel() > 0: 
+        hamilt = torch.mean(compute_hamiltonian_int_residual(neural_net, domain.u_hamilt, domain.x_ic, domain.t_hamilt)**2)
+    else:
+        hamilt = torch.zeros_like(ic)
     
 
-    components = torch.stack([ic, bc, pde, momentum, energy])
+    components = torch.stack([ic, bc, pde, momentum, energy, hamilt])
     return components
     
 
@@ -203,6 +235,7 @@ def update_loss_list(losses: dict[str, list[float]],
     losses['pde'].append(float(loss_comps[2]))
     losses['momentum'].append(float(loss_comps[3]))
     losses['energy'].append(float(loss_comps[4]))
+    losses['hamiltonian'].append(float(loss_comps[5]))
 
 def update_last_vals(last_vals: dict[str, float], 
                      total_loss: torch.Tensor, 
@@ -218,6 +251,7 @@ def update_last_vals(last_vals: dict[str, float],
     last_vals['pde'] = float(loss_comps[2])
     last_vals['momentum'] = float(loss_comps[3])
     last_vals['energy'] = float(loss_comps[4])
+    last_vals['hamiltonian'] = float(loss_comps[5])
 
 def append_last_vals(losses: dict[str, list[float]],
                      last_vals: dict[str, float]
@@ -232,3 +266,4 @@ def append_last_vals(losses: dict[str, list[float]],
     losses['pde'].append(last_vals['pde'])
     losses['momentum'].append(last_vals['momentum'])
     losses['energy'].append(last_vals['energy'])
+    losses['hamiltonian'].append(last_vals['hamilt'])

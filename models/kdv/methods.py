@@ -5,7 +5,6 @@ used across training a PINN on the KdV equation for computing error and initial 
 
 import torch
 
-@torch.compile()
 def n_soliton(x: torch.Tensor, 
               t: torch.Tensor, 
               k_vec: torch.Tensor,
@@ -107,6 +106,14 @@ def n_soliton(x: torch.Tensor,
         return u.to(x.dtype)
     else:
         raise ValueError("n_soliton implemented only for N = 1, 2 or 3 solitons")
+    
+def scalar_n_soliton(x: torch.Tensor, 
+                     t: torch.Tensor, 
+                     k_vec: torch.Tensor,
+                     delta_vec: torch.Tensor
+                     ) -> torch.Tensor:
+    return n_soliton(x, t, k_vec, delta_vec).squeeze()
+    
 
 @torch.compile(fullgraph=True)
 def phase_shifts(k_vec: torch.Tensor) -> torch.Tensor:
@@ -174,3 +181,12 @@ def momentum_integral(u: torch.Tensor,
                       ) -> torch.Tensor:
     
     return torch.trapz(u, x, dim=0)
+
+
+def hamiltonian_integral(u: torch.Tensor,
+                         u_x: torch.Tensor,
+                         x: torch.Tensor,
+                         ) -> torch.Tensor:
+
+    hamiltonian = u**3 - 0.5 * (u_x**2)
+    return torch.trapz(hamiltonian, x, dim=0)
