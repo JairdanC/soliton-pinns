@@ -16,7 +16,7 @@ from models import KDV
 
 cuda_available = torch.cuda.is_available()
 print(f"CUDA available: {cuda_available}")
-testing_seeds = [42, 72, 83, 27, 81, 174]
+testing_seeds = [42, 72, 83]
 
 def conservation_test(path: str | Path,
                       momentum_int,
@@ -116,15 +116,15 @@ def conservation_test(path: str | Path,
         
         print(f"=== Finished index = {i} | Avg MAE: {experiment_results[-1]['mae_mean']:.6e} ===\n")
             
-energy_weight_flat = np.asarray([0.0, 1.0, 2.5, 5.0, 7.5, 10.0, 15.0, 20.0])
-hamilt_weight_flat = np.asarray([0.0, 1.0, 2.5, 5.0, 7.5, 10.0, 15.0, 20.0])
+energy_weight_flat = np.asarray([0.0, 1.0, 2.5, 5.0, 10.0, 20.0])
+hamilt_weight_flat = np.asarray([0.0, 1.0, 2.5, 5.0, 10.0, 20.0])
 energy_weight_mesh, hamilt_weight_mesh = np.meshgrid(energy_weight_flat, hamilt_weight_flat, indexing='xy')
 energy_weight = energy_weight_mesh.flatten()
 hamilt_weight = hamilt_weight_mesh.flatten()
 momentum_int = np.zeros_like(energy_weight, dtype=int)
 momentum_weight = np.zeros_like(energy_weight, dtype=float)
-energy_int = np.ones_like(energy_weight, dtype=int) * 20
-hamilt_int = np.ones_like(energy_weight, dtype=int) * 20
+energy_int = np.ones_like(energy_weight, dtype=int) * 35
+hamilt_int = np.ones_like(energy_weight, dtype=int) * 35
 
 
 path = '2_soliton_energy_hamilt_weight_test.pkl'

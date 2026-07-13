@@ -289,4 +289,45 @@ def train(neural_net: MLP,
 
     return training_stats, domain
 
+#SIMPLE EXPLORER TESTING FUNCTIONS
+
+def adam(neural_net: MLP, domain: TrainingDomain, train_weights: dict[str, float], epoches: int, lr: float):
+    optimizer = torch.optim.Adam(params=neural_net.parameters(), lr=lr)
+    weights = init_loss_weights(device=domain.x_coll.device, init_weights=train_weights)
+
+    for epoch in range(epoches):
+        optimizer.zero_grad(set_to_none=True)
+        loss_comps = loss_components(neural_net, domain)
+        total_loss = torch.dot(weights, loss_comps)
+        total_loss.backward()
+        optimizer.step()
+
+    print(f'============= COMPLETED {epoches} EPOCHES using ADAM =============')
+
+def lbfgs_test(neural_net: MLP, domain: TrainingDomain, train_weights: dict[str, float], epoches: int, **optim_kwargs):
+    defaults = {
+        'lr': 1.0,
+        'max_iter': epoches,
+        'max_eval': epoches * 2,
+        'tolerance_grad': 1e-79,
+        'tolerance_change': 1e-16,
+        'history_size': 100,
+        'line_search_fn': 'strong_wolfe'
+    }
+    optim_params = {**defaults, **optim_kwargs}
+    optimizer = torch.optim.LBFGS(params=neural_net.parameters(), **optim_params)
+    weights = init_loss_weights(device=domain.x_coll.device, init_weights=train_weights)
+
+    def closure():
+        optimizer.zero_grad(set_to_none=True)
+        loss_comps = loss_components(neural_net, domain)
+        total_loss = torch.dot(weights, loss_comps)
+        total_loss.backward()
+    
+        return total_loss
+    
+    optimizer.step(closure)
+
+    print(f'============= COMPLETED {epoches} EPOCHES using LBFGS =============')
+    
 
