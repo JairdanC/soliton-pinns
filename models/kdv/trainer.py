@@ -309,7 +309,7 @@ def lbfgs_test(neural_net: MLP, domain: TrainingDomain, train_weights: dict[str,
         'lr': 1.0,
         'max_iter': epoches,
         'max_eval': epoches * 2,
-        'tolerance_grad': 1e-79,
+        'tolerance_grad': 1e-7,
         'tolerance_change': 1e-16,
         'history_size': 100,
         'line_search_fn': 'strong_wolfe'
