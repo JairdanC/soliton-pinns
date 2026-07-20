@@ -219,6 +219,81 @@ def loss_components(neural_net: MLP,
     components = torch.stack([ic, bc, pde, momentum, energy, hamilt])
     return components
     
+def batched_loss_components(neural_net: MLP,
+                            domain: TrainingDomain,
+                            coll_B: int,
+                            integral_B: int,
+                            weights: torch.Tensor
+                            ) -> tuple[torch.Tensor, torch.Tensor]:
+    
+    ic = compute_initial_loss(neural_net, domain.u_ic, domain.x_ic, domain.t_ic)
+    bc = compute_boundary_loss(neural_net, domain.u_bc, domain.x_bc, domain.t_bc)
+
+    n_collocation = domain.x_coll.numel()
+    residual_chunks = []
+    if n_collocation % coll_B != 0:
+        raise ValueError("Batch size must evenly divide into number of collocation points")
+    
+    fraction = coll_B / n_collocation
+    for i in range(0, n_collocation, coll_B):
+        chunk_mse = torch.mean(compute_pde_residual(neural_net, domain.x_coll[i:i+coll_B], domain.t_coll[i:i+coll_B])**2) * fraction
+        weighted_temp = chunk_mse * weights[2]
+        weighted_temp.backward()
+        residual_chunks.append(chunk_mse.detach())
+    pde = torch.sum(torch.stack(residual_chunks))
+    
+
+    if domain.t_momentum is not None and domain.t_momentum.numel() > 0: 
+        n_integrals = domain.t_momentum.numel()
+        residual_chunks = []
+        if n_integrals % integral_B != 0:
+            raise ValueError("Batch size must evenly divide into number of momentum integral points")
+        
+        fraction = integral_B / n_integrals
+        for i in range(0, n_integrals, integral_B):
+            chunk_mse = torch.mean(compute_momentum_int_residual(neural_net, domain.u_momentum, domain.x_ic, domain.t_momentum[i:i+integral_B])**2) * fraction
+            weighted_temp = chunk_mse * weights[3]
+            weighted_temp.backward()
+            residual_chunks.append(chunk_mse.detach())
+        momentum = torch.sum(torch.stack(residual_chunks))
+    else:
+        momentum = torch.zeros_like(ic)
+
+    if domain.t_energy is not None and domain.t_energy.numel() > 0: 
+        n_integrals = domain.t_energy.numel()
+        residual_chunks = []
+        if n_integrals % integral_B != 0:
+            raise ValueError("Batch size must evenly divide into number of energy integral points")
+        
+        fraction = integral_B / n_integrals
+        for i in range(0, n_integrals, integral_B):
+            chunk_mse = torch.mean(compute_energy_int_residual(neural_net, domain.u_energy, domain.x_ic, domain.t_energy[i:i+integral_B])**2) * fraction
+            weighted_temp = chunk_mse * weights[4]
+            weighted_temp.backward()
+            residual_chunks.append(chunk_mse.detach())
+        energy = torch.sum(torch.stack(residual_chunks))
+    else:
+        energy = torch.zeros_like(ic)
+
+    if domain.t_hamilt is not None and domain.t_hamilt.numel() > 0: 
+        n_integrals = domain.t_hamilt.numel()
+        residual_chunks = []
+        if n_integrals % integral_B != 0:
+            raise ValueError("Batch size must evenly divide into number of Hamiltonian integral points")
+        
+        fraction = integral_B / n_integrals
+        for i in range(0, n_integrals, integral_B):
+            chunk_mse = torch.mean(compute_hamiltonian_int_residual(neural_net, domain.u_hamilt, domain.x_ic, domain.t_hamilt[i:i+integral_B])**2) * fraction
+            weighted_temp = chunk_mse * weights[5]
+            weighted_temp.backward()
+            residual_chunks.append(chunk_mse.detach())
+        hamilt = torch.sum(torch.stack(residual_chunks))
+    else:
+        hamilt = torch.zeros_like(ic)
+
+    components = torch.stack([ic, bc, pde, momentum, energy, hamilt])
+    loss = torch.dot(weights, components)
+    return loss, components
 
 def update_loss_list(losses: dict[str, list[float]], 
                      total_loss: torch.Tensor, 

@@ -297,8 +297,7 @@ def adam(neural_net: MLP, domain: TrainingDomain, train_weights: dict[str, float
 
     for epoch in range(epoches):
         optimizer.zero_grad(set_to_none=True)
-        loss_comps = loss_components(neural_net, domain)
-        total_loss = torch.dot(weights, loss_comps)
+        total_loss, components = batched_loss_components(neural_net, domain, 25000, 10, train_weights)
         total_loss.backward()
         optimizer.step()
 
@@ -320,8 +319,7 @@ def lbfgs_test(neural_net: MLP, domain: TrainingDomain, train_weights: dict[str,
 
     def closure():
         optimizer.zero_grad(set_to_none=True)
-        loss_comps = loss_components(neural_net, domain)
-        total_loss = torch.dot(weights, loss_comps)
+        total_loss, components = batched_loss_components(neural_net, domain, 25000, 10, train_weights)
         total_loss.backward()
     
         return total_loss
