@@ -15,7 +15,8 @@ from ..utils import *
 from ..network import *
 from .methods import n_soliton, scalar_n_soliton, energy_integral, momentum_integral, hamiltonian_integral
 
-
+COLL_B = 25000
+INT_B = 10
 
 def setup_training_domain(n_collocation: int,
                           n_initial: int,
@@ -188,8 +189,7 @@ def train(neural_net: MLP,
 
     for epoch in range(params['adam_epochs']):
         optimizer.zero_grad(set_to_none=True)
-        loss_comps = loss_components(neural_net, domain)
-        total_loss = torch.dot(loss_weights, loss_comps)
+        total_loss, loss_comps = batched_loss_components(neural_net, domain, COLL_B, INT_B, loss_weights)
         total_loss.backward()
         optimizer.step()
 
@@ -257,13 +257,15 @@ def train(neural_net: MLP,
 
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components(neural_net, domain)
-            total_loss = torch.dot(loss_weights, loss_comps)
+            total_loss, _ = batched_loss_components(neural_net, domain, COLL_B, INT_B, loss_weights)
             total_loss.backward()
             return total_loss
 
         for i in range(params['lbfgs_epochs']):
             optimizer.step(closure)
+
+            """
+            Will be fixed for the batched loss function later
 
             if params['logging']:
                 loss_comps = loss_components(neural_net, domain)
@@ -274,7 +276,7 @@ def train(neural_net: MLP,
                     if not params['logging']:
                         loss_comps = loss_components(neural_net, domain)
                         total_loss = torch.dot(loss_weights, loss_comps)
-                    print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {total_loss.item():.6e}")
+                    print(f"L-BFGS - Iteration {i+1}/{params['lbfgs_epochs']}, Total Loss: {total_loss.item():.6e}")"""
 
     if params['verbose']: log_gpu_memory("after L-BFGS")
 
