@@ -16,7 +16,7 @@ from ..network import *
 from .methods import n_soliton, scalar_n_soliton, energy_integral, momentum_integral, hamiltonian_integral
 
 COLL_B = 25000
-INT_B = 10
+INT_B = 5
 
 def setup_training_domain(n_collocation: int,
                           n_initial: int,
