@@ -1,5 +1,7 @@
 #Libraries
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.animation import Animation
 from matplotlib.colors import LogNorm
 import numpy as np
 import torch
@@ -47,6 +49,69 @@ def plot_profiles(t_values: list[int],
 
     return fig
 
+def animate_profiles(domain: TestingDomain,
+                     solutions: Solutions,
+                     which: tuple[str,...]=('predicted', 'exact'),
+                     animation_len: int = 5,
+                     save_path: str | None = None
+                     ) -> Animation:
+
+    x = domain.x_test.cpu().numpy()
+    x_axis = x[:, 0]
+    t = domain.t_test.cpu().numpy()
+    t_axis = t[0,:]
+
+    fig = plt.figure(figsize=FIG_SIZE_LONG)
+    ax = fig.add_subplot(autoscale_on=False, xlim=(x_axis[0], x_axis[-1]),
+                         ylim=(0, torch.max(solutions.predicted).item()+0.1))
+
+    sol_field = []
+    artists = []
+    for sol_key in which:
+        match sol_key:
+            case 'exact': 
+                sol_field.append(solutions.exact.cpu().numpy())
+                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}')
+                artists.append(temp)
+            case 'linear': 
+                sol_field.append(solutions.linear.cpu().numpy())
+                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}')
+                artists.append(temp)
+            case 'predicted': 
+                sol_field.append(solutions.predicted.cpu().numpy())
+                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}')
+                artists.append(temp)
+            case _: raise ValueError(f'Each key in which must be predicted, exact or linear.')
+
+    
+    ax.grid(True, alpha=0.4)
+    ax.set_xlabel('x')
+    ax.set_ylabel('u(x,t)')
+    ax.legend()
+    time_template = 'time = %.1fs'
+    time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
+
+    frames = t_axis.size
+    interval = (animation_len / frames) * 1000
+
+    def animate(i):
+        ret = []
+        which_idx = 0
+        for profile in sol_field:
+            artists[which_idx].set_ydata(profile[:,i])
+            ret.append(artists[which_idx])
+            which_idx += 1 
+        time_text.set_text(time_template % (t_axis[i]))
+        ret.append(time_text)
+
+        return ret
+
+
+    ani = animation.FuncAnimation(fig, animate, frames, interval, blit=True)
+    if save_path is not None: ani.save(save_path, writer=animation.PillowWriter(fps=30))
+    
+    return ani
+    
 
 def plot_losses(components: list[str], 
                 losses: dict[str, list[float]], 

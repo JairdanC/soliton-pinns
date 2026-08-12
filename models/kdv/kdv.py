@@ -11,6 +11,7 @@ import random
 #Types
 import typing
 from matplotlib.figure import Figure
+from matplotlib.animation import Animation
 #Scripts
 from . import trainer
 from . import visualizer
@@ -185,7 +186,19 @@ class KDV(nn.Module):
         solutions = self.compute_solutions(domain)
         plot = visualizer.plot_profiles(t_values, domain, solutions, which)
         return plot
-    
+
+    def animate_profiles(self, 
+                         which: tuple[str,...]=('predicted', 'exact'), 
+                         animation_len: int = 5, 
+                         save_path: str | None = None,
+                         nx: int = 1000,
+                         nt: int = 1000
+                         ) -> Animation:
+
+        domain = setup_testing_domain(self.soliton_params['x_lims'], self.soliton_params['t_lims'], nx, nt)
+        solutions = self.compute_solutions(domain)
+        ani = visualizer.animate_profiles(domain, solutions, which, animation_len, save_path)
+        return ani
     
     #Wrapper call
     def plot_losses(self, training_stats: TrainingStats,
