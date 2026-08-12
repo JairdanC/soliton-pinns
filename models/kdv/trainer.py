@@ -178,7 +178,7 @@ def train(neural_net: MLP,
     )
 
     if params['verbose']:
-        loss_comps = loss_components(neural_net, domain)
+        total_loss, loss_comps = batched_loss_components(neural_net, domain, COLL_B, INT_B, loss_weights)
         print_weighted_loss_components(loss_weights, loss_comps, tag='start') 
 
     #Adam Optimizer
@@ -226,8 +226,7 @@ def train(neural_net: MLP,
         
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            loss_comps = loss_components(neural_net, domain)
-            total_loss = torch.dot(loss_weights, loss_comps)
+            total_loss, loss_comps = batched_loss_components(neural_net, domain, COLL_B, INT_B, loss_weights)
             total_loss.backward()
 
             update_loss_list(losses, total_loss, loss_comps)

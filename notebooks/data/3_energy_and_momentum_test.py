@@ -32,14 +32,32 @@ def conservation_test(path: str | Path,
     with integrated error handling (though it may change), it is a one all function to make calls easier
     """
 
-    experiment_results = []
-
-    print("Starting 3-Soliton Experiment Experiment...")
+    path_obj = Path(path)
+    
+    # --- RESUME LOGIC ADDED HERE ---
+    if path_obj.exists():
+        print(f"Found existing file at {path_obj}. Loading previous results...")
+        with open(path_obj, 'rb') as f:
+            experiment_results = pickle.load(f)
+        
+        # Start index is the number of already completed runs
+        start_index = len(experiment_results)
+        print(f"Resuming experiment from index {start_index} out of {momentum_int.size}...\n")
+        
+        if start_index >= momentum_int.size:
+            print("All runs are already complete!")
+            return
+    else:
+        experiment_results = []
+        start_index = 0
+        print("Starting 3-Soliton Experiment Experiment from scratch...\n")
+    # -------------------------------
 
     if not isinstance(momentum_int, np.ndarray):
         raise ValueError('passed non-np.ndarray')
     
-    for i in range(0, momentum_int.size):
+    # Loop now begins at start_index instead of 0
+    for i in range(start_index, momentum_int.size):
 
         results = {
             'time': [],
@@ -77,7 +95,7 @@ def conservation_test(path: str | Path,
             )
             TRAIN_WEIGHTS = dict[str, float]( #seperated out from the train params
                 w_ic                     = 10.0,    
-                w_bc                     = 1.0,    
+                w_bc                     = 1.0,     
                 w_pde                    = 400.0,
                 w_momentum               = float(momentum_weight[i]),
                 w_energy                 = float(energy_weight[i]),
@@ -111,7 +129,8 @@ def conservation_test(path: str | Path,
         })
         
         # Save a backup to disk
-        with open(path, 'wb') as f:
+        # Overwriting is safe here because experiment_results contains all previously loaded items + new items
+        with open(path_obj, 'wb') as f:
             pickle.dump(experiment_results, f)
         
         print(f"=== Finished index = {i} | Avg MAE: {experiment_results[-1]['mae_mean']:.6e} ===\n")
