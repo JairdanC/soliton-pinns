@@ -71,15 +71,15 @@ def animate_profiles(domain: TestingDomain,
         match sol_key:
             case 'exact': 
                 sol_field.append(solutions.exact.cpu().numpy())
-                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}')
+                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}', linestyle='--', color='black')
                 artists.append(temp)
             case 'linear': 
                 sol_field.append(solutions.linear.cpu().numpy())
-                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}')
+                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}', linestyle=':', color='grey')
                 artists.append(temp)
             case 'predicted': 
                 sol_field.append(solutions.predicted.cpu().numpy())
-                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}')
+                temp, = ax.plot(x_axis, np.full_like(x_axis, np.nan), label=f'{sol_key}', color='steelblue')
                 artists.append(temp)
             case _: raise ValueError(f'Each key in which must be predicted, exact or linear.')
 
@@ -91,25 +91,29 @@ def animate_profiles(domain: TestingDomain,
     time_template = 'time = %.1fs'
     time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
 
-    frames = t_axis.size
+    total_frames = t_axis.size
+    skip_step = max(1, total_frames // (animation_len * 30))
+    frames = total_frames // skip_step
+    fps = frames // animation_len
+    print(f'Creating a GIF with an FPS of: {fps}')
     interval = (animation_len / frames) * 1000
 
     def animate(i):
         ret = []
+        data_idx = i * skip_step
         which_idx = 0
         for profile in sol_field:
-            artists[which_idx].set_ydata(profile[:,i])
+            artists[which_idx].set_ydata(profile[:,data_idx])
             ret.append(artists[which_idx])
             which_idx += 1 
-        time_text.set_text(time_template % (t_axis[i]))
+        time_text.set_text(time_template % (t_axis[data_idx]))
         ret.append(time_text)
 
         return ret
 
 
-    ani = animation.FuncAnimation(fig, animate, frames, interval, blit=True)
-    if save_path is not None: ani.save(save_path, writer=animation.PillowWriter(fps=30))
-    
+    ani = animation.FuncAnimation(fig, animate, frames, interval=interval, blit=True)
+    if save_path is not None: ani.save(save_path, writer=animation.PillowWriter(fps=fps))
     return ani
     
 
