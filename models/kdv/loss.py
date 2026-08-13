@@ -6,7 +6,7 @@ for the KdV equation
 import torch
 import torch.nn as nn
 #Types
-from .types import TrainingDomain
+from ..types import TrainingDomain
 from ..network import MLP
 #Methods
 from .methods import momentum_integral, energy_integral, hamiltonian_integral

@@ -13,13 +13,13 @@ import typing
 from matplotlib.figure import Figure
 from matplotlib.animation import Animation
 #Scripts
-from . import trainer
-from . import visualizer
+from .. import trainer
+from .. import visualizer
 #Methods
 from ..network import MLP
 from .methods import n_soliton, linear_combination
 from .tester import setup_testing_domain, test
-from .types import *
+from ..types import *
 
 class KDV(nn.Module):
     def __init__(self, init_params
